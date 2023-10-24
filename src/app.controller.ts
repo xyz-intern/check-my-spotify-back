@@ -10,6 +10,7 @@ export class AppController {
 
   @Get('/callback')
   async callback(@Req() req: Request, @Res() res: Response) {
+
     // queryString에서 state, code 추출
     const state = req.query.state || null;
     const code = req.query.code || null;
@@ -26,25 +27,28 @@ export class AppController {
         url: 'https://accounts.spotify.com/api/token',
         form: {
           code: code,
-          redirect_uri: 'http://localhost:3000/callback',
+          redirect_uri: 'http://192.168.0.106:3000/callback',
           grant_type: 'authorization_code',
         },
         // Base62 Encoding
         headers: {
           Authorization:
             'Basic ' +
-            Buffer.from("client_id" + ':' + "client_secret").toString('base64'),
+            Buffer.from("f7601b150dde4057a8d8df839792e18b" + ':' + "699904e4d8ed43ab8fe7e406756b2a28").toString('base64'),
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         json: true
       };
+
+      res.setHeader('authOptions', authOptions.headers);
+      res.send(authOptions.form)
   
-      try {
-        const response = await this.httpService.post(authOptions.url, JSON.stringify(authOptions.form), { headers: authOptions.headers }).toPromise();
-        console.log(`response: ${response.data}`);
-      } catch (error) {
-         console.error(error);
-      }
+      // try {
+      //   const response = await this.httpService.post(authOptions.url, {data: JSON.stringify(authOptions.form)}, { headers: authOptions.headers }).toPromise();
+      //   console.log(`response: ${response.data}`);
+      // } catch (error) {
+      //    console.error(error);
+      // }
     }
   }
 }

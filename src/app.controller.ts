@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios'
 // import queryString from 'query-string';
 import * as querystring from 'querystring';
 import { Request, Response, query } from 'express';
+const request = require('request');
 
 @Controller()
 export class AppController {
@@ -10,6 +11,7 @@ export class AppController {
 
   @Get('/callback')
   async callback(@Req() req: Request, @Res() res: Response) {
+
     // queryString에서 state, code 추출
     const state = req.query.state || null;
     const code = req.query.code || null;

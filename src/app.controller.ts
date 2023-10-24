@@ -6,7 +6,7 @@ import { Request, Response, query } from 'express';
 
 @Controller()
 export class AppController {
-  constructor(private httpService: HttpService) {}
+  constructor(private httpService: HttpService) { }
 
   @Get('/callback')
   async callback(@Req() req: Request, @Res() res: Response) {
@@ -21,30 +21,32 @@ export class AppController {
     if (state === null) {
       return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
     } else {
-    // Access Token 요청
+
+      // Access Token 요청
       let authOptions = {
         url: 'https://accounts.spotify.com/api/token',
         form: {
-          code: code,
-          redirect_uri: 'http://localhost:3000/callback',
-          grant_type: 'authorization_code',
+          'code': code,
+          'redirect_uri': 'http://localhost:3000/callback',
+          'grant_type': 'authorization_code',
         },
         // Base62 Encoding
         headers: {
           Authorization:
             'Basic ' +
-            Buffer.from("client_id" + ':' + "client_secret").toString('base64'),
+            Buffer.from("f7601b150dde4057a8d8df839792e18b" + ':' + "699904e4d8ed43ab8fe7e406756b2a28").toString('base64'),
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         json: true
       };
-  
+
       try {
-        const response = await this.httpService.post(authOptions.url, JSON.stringify(authOptions.form), { headers: authOptions.headers }).toPromise();
-        console.log(`response: ${response.data}`);
+        const response = await this.httpService.post(authOptions.url, authOptions.form, { headers: authOptions.headers }).toPromise();
+        console.log(`response: ${JSON.stringify(response.data)}`);
       } catch (error) {
-         console.error(error);
+        console.error(error);
       }
     }
+
   }
 }

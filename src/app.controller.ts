@@ -14,9 +14,6 @@ export class AppController {
     const state = req.query.state || null;
     const code = req.query.code || null;
 
-    console.log('state     :    ' + state);
-    console.log('code      :    ' + code);
-
     // state 값이 없다면
     if (state === null) {
       return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
@@ -25,23 +22,23 @@ export class AppController {
       let authOptions = {
         url: 'https://accounts.spotify.com/api/token',
         form: {
-          code: code,
-          redirect_uri: 'http://localhost:3000/callback',
-          grant_type: 'authorization_code',
+          'code': code,
+          'redirect_uri': process.env.REDIRECT_URI,
+          'grant_type': process.env.GRANT_TYPE,
         },
         // Base62 Encoding
         headers: {
           Authorization:
             'Basic ' +
-            Buffer.from("client_id" + ':' + "client_secret").toString('base64'),
+            Buffer.from(process.env.CLIENT_ID + ':' + process.env.CLIENT_SECRET).toString('base64'),
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         json: true
       };
   
       try {
-        const response = await this.httpService.post(authOptions.url, JSON.stringify(authOptions.form), { headers: authOptions.headers }).toPromise();
-        console.log(`response: ${response.data}`);
+        const response = await this.httpService.post(authOptions.url, authOptions.form, { headers: authOptions.headers }).toPromise();
+        console.log(`response: ${JSON.stringify(response.data)}`);
       } catch (error) {
          console.error(error);
       }

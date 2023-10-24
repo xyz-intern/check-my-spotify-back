@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios'
 // import queryString from 'query-string';
 import * as querystring from 'querystring';
 import { Request, Response, query } from 'express';
+const request = require('request');
 
 @Controller()
 export class AppController {
@@ -19,36 +20,26 @@ export class AppController {
     console.log('code      :    ' + code);
 
     // state 값이 없다면
-    if (state === null) {
-      return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
-    } else {
-    // Access Token 요청
-      let authOptions = {
-        url: 'https://accounts.spotify.com/api/token',
-        form: {
-          code: code,
-          redirect_uri: 'http://192.168.0.106:3000/callback',
-          grant_type: 'authorization_code',
-        },
-        // Base62 Encoding
-        headers: {
-          Authorization:
-            'Basic ' +
-            Buffer.from("f7601b150dde4057a8d8df839792e18b" + ':' + "699904e4d8ed43ab8fe7e406756b2a28").toString('base64'),
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        json: true
-      };
+    if (state === null) { return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));} 
 
-      res.setHeader('authOptions', authOptions.headers);
-      res.send(authOptions.form)
-  
-      // try {
-      //   const response = await this.httpService.post(authOptions.url, {data: JSON.stringify(authOptions.form)}, { headers: authOptions.headers }).toPromise();
-      //   console.log(`response: ${response.data}`);
-      // } catch (error) {
-      //    console.error(error);
-      // }
-    }
+    let authOptions = {
+      url: 'https://accounts.spotify.com/api/token',
+      headers: {
+        'Authorization': 'Basic ' + 
+        // Buffer.from(process.env.CLIENT_ID + ':' + process.env.CLIENT_SECRET).toString('base64'),
+        Buffer.from( 'client_id'+ ':' +'client_secret' ).toString('base64'),
+      },
+      form: {
+        grant_type: 'client_credentials'
+      },
+      json: true
+    };
+    
+    request.post(authOptions, function(error, response, body) {
+      if (!error && response.statusCode === 200) {
+        let token = body.access_token;
+        console.log('token   '+token);
+      }
+    });
   }
 }

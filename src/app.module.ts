@@ -7,6 +7,7 @@ import { ApisModule } from './apis/apis.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Token } from './apis/entities/token.entity';
 import { TokenRepository } from './app.repository';
+import { Playlist } from './apis/entities/playlist.entity';
 
 @Module({
   imports: [HttpModule, ApisModule,
@@ -19,9 +20,9 @@ import { TokenRepository } from './app.repository';
       port: +process.env.DATABASE_PORT,
       username: process.env.DATABASE_USERNAME,
       password: process.env.DATABASE_PASSWORD,
-      entities: [Token],
+      entities: [Token, Playlist],
       database: process.env.DATABASE_NAME,
-      synchronize: true,
+      synchronize: false,
       autoLoadEntities: true
     }),
     TypeOrmModule.forFeature([Token, TokenRepository]),

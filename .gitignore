@@ -10,11 +10,12 @@
 /dist
 /node_modules
 
-# 
+# ENV
 *.env
 *.dev
 *.env.*
 *.env*
+**/.env
 
 # Logs
 logs

@@ -15,8 +15,6 @@ export class AppController {
   async callback(@Req() req: Request, @Res() res: Response) {
     const state = req.query.state || null;
     const code = req.query.code || null;
-    console.log('state', state);
-    console.log('code', code);
 
     if (!state) {
       return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));

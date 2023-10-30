@@ -14,5 +14,6 @@ export class Playlist {
     imageUri: string;
     @Column()
     albumName: string;
-
+    @Column()
+    deviceId: string;
 }

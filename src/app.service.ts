@@ -3,11 +3,10 @@ import { HttpService } from '@nestjs/axios'
 import { InjectRepository } from '@nestjs/typeorm';
 import { Token } from './apis/entities/token.entity';
 import { Repository } from 'typeorm';
-
+import axios from 'axios';
 @Injectable()
 export class AppService {
   constructor(
-    private httpService: HttpService,
     @InjectRepository(Token)
     private tokenRepository: Repository<Token>
   ) { }
@@ -34,8 +33,7 @@ export class AppService {
 
     try {
       // HttpModule Post 요청
-      const response = await this.httpService.post(authOptions.url, authOptions.form, { headers: authOptions.headers }).toPromise();
-      console.log(JSON.stringify(response.data))
+      const response = await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
       const access_token = JSON.stringify(response.data.access_token).replace(/"/g, '');
       const refresh_token = JSON.stringify(response.data.refresh_token).replace(/"/g, '');
       const userName = await this.getUserProfile(access_token);
@@ -69,7 +67,7 @@ export class AppService {
     };
 
     try {
-      const response = await this.httpService.get(authOptions.url, { headers: authOptions.headers }).toPromise();
+      const response = await axios.get(authOptions.url, { headers: authOptions.headers });
       // console.log('user', JSON.stringify(response.data));
       const display_name = JSON.stringify(response.data.display_name).replace(/"/g, '');
       return display_name;
@@ -97,7 +95,7 @@ export class AppService {
     };
 
     try {
-      const reissue = await this.httpService.post(authOptions.url, authOptions.form, { headers: authOptions.headers }).toPromise();
+      const reissue = await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
       console.log(JSON.stringify(reissue.data));
       return reissue;
     } catch (error) {

@@ -16,4 +16,6 @@ export class Playlist {
     albumName: string;
     @Column()
     deviceId: string;
+    @Column()
+    count: number;
 }

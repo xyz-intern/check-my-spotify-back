@@ -45,15 +45,28 @@ export class ApisService {
 
       const saveTrackData = new PlaylistDto();
 
-      saveTrackData.userId = userId;
-      saveTrackData.albumName = albumName;
-      saveTrackData.artistName = artistName;
-      saveTrackData.songName = songName;
-      saveTrackData.imageUri = imageUri.find((image) => image.height === 640).url
-      saveTrackData.deviceId = device;
+      // 같은 곡 또 Play
+      const duplication = await this.playlistRepository.findOne({
+        where: {songName: songName, artistName: artistName}
+      })
 
-      this.playlistRepository.save(saveTrackData);
-
+      if(duplication){
+        const updateInfo = {
+          ...duplication,
+          count: duplication.count + 1
+        }
+        this.playlistRepository.update(updateInfo.songId, updateInfo);
+      }else{
+        saveTrackData.userId = userId;
+        saveTrackData.albumName = albumName;
+        saveTrackData.artistName = artistName;
+        saveTrackData.songName = songName;
+        saveTrackData.imageUri = imageUri.find((image) => image.height === 640).url
+        saveTrackData.deviceId = device;
+        saveTrackData.count = 1;
+  
+        this.playlistRepository.save(saveTrackData);
+      }
     } catch (error) {
       console.error(error);
     }

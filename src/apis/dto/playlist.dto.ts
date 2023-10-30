@@ -5,4 +5,5 @@ export class PlaylistDto {
     imageUri: string;
     albumName: string;
     deviceId: string;
+    count: number;
 }

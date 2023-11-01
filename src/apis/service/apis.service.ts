@@ -38,9 +38,10 @@ export class ApisService {
       const songName = response.data.item.name;
       const imageUri = response.data.item.album.images;
       const artistName = results.join(', ');
-      const duration_ms = response.data.item.duration_ms;
+      // const progress_ms = response.data.progress_ms;
+      const duration_ms = response.data.item.duration_ms
 
-      console.log("재생시간", duration_ms)
+      // console.log("재생시간", Number(duration_ms)-Number(progress_ms))
       const saveTrackData = new PlaylistDto();
 
       // 같은 곡 Play
@@ -65,8 +66,13 @@ export class ApisService {
         saveTrackData.count = 1;
   
         this.playlistRepository.save(saveTrackData);
-        return duration_ms;
+        
+        
       }
+      console.log("gdg", duration_ms)
+      return duration_ms;
+      
+      
     } catch (error) {
       console.error(error);
     }
@@ -92,9 +98,9 @@ export class ApisService {
   }
 
   
-  async executeCommand(commandId: string, session: MySession): Promise<string> {
+  async executeCommand(commandId: string): Promise<string> {
     let success = "";
-    const userId = session.userName;
+    const userId = "dlatldhs";
     const user = await this.tokenRepository.findOne({ where: {userId} })
     const deviceId = await this.getDeviceId(user.accessToken);
 

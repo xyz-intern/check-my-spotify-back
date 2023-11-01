@@ -1,16 +1,19 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { AppController } from '../apis/controller/app.controller';
+import { AppService } from '../apis/service/app.service';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config'
-import { ApisModule } from './apis/apis.module';
+import { ApisModule } from './apis.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Token } from './apis/entities/token.entity';
-import { TokenRepository } from './app.repository';
-import { Playlist } from './apis/entities/playlist.entity';
+import { Token } from '../apis/entities/token.entity';
+import { TokenRepository } from '../apis/repository/app.repository';
+import { Playlist } from '../apis/entities/playlist.entity';
+import { ScheduleModule } from '@nestjs/schedule';
+import {SessionModule } from 'nestjs-session';
 
 @Module({
-  imports: [HttpModule, ApisModule,
+  imports: [ApisModule,
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true
     }),

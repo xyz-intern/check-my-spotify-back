@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios'
 import { InjectRepository } from '@nestjs/typeorm';
-import { Token } from './apis/entities/token.entity';
+import { Token } from '../entities/token.entity';
+import { Request, Response } from 'express';
 import { Repository } from 'typeorm';
 import axios from 'axios';
+import { MySession } from '../interface/session.interface';
+
+
 @Injectable()
 export class AppService {
   constructor(
@@ -12,7 +15,7 @@ export class AppService {
   ) { }
 
 
-  async getAuthorizationCode(state: Object, code: Object): Promise<void> {
+  async getAuthorizationCode(code: Object, session: MySession): Promise<string> {
     // AccessToken & RefreshToken 요청하기
     let authOptions = {
       url: 'https://accounts.spotify.com/api/token',
@@ -34,9 +37,14 @@ export class AppService {
     try {
       // HttpModule Post 요청
       const response = await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
+      console.log(JSON.stringify(response.data));
+      const data = JSON.stringify(response.data)
       const access_token = JSON.stringify(response.data.access_token).replace(/"/g, '');
       const refresh_token = JSON.stringify(response.data.refresh_token).replace(/"/g, '');
       const userName = await this.getUserProfile(access_token);
+
+      // session.userName = userName;
+      // console.log("ssfaf", session)
 
       const token = this.tokenRepository.create({
         userId: userName,
@@ -45,13 +53,13 @@ export class AppService {
       })
 
       // Token database 저장
-      this.tokenRepository.save(token);
-
+      await this.tokenRepository.save(token);
       // const acessToken_reissue = await this.getReAccessToken(refresh_token);
       // console.log(acessToken_reissue)
-
+      return token.userId
     } catch (error) {
       console.error(error);
+      
     }
 
   }
@@ -68,7 +76,6 @@ export class AppService {
 
     try {
       const response = await axios.get(authOptions.url, { headers: authOptions.headers });
-      // console.log('user', JSON.stringify(response.data));
       const display_name = JSON.stringify(response.data.display_name).replace(/"/g, '');
       return display_name;
     } catch (error) {

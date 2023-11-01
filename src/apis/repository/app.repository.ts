@@ -1,5 +1,5 @@
 import { Repository } from "typeorm";
-import { Token } from "./apis/entities/token.entity";
+import { Token } from "../entities/token.entity";
 import { CustomRepository } from "./custom.repository";
 
 @CustomRepository(Token)

@@ -2,6 +2,9 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 @Entity()
 export class Token {
     @PrimaryGeneratedColumn()
+    tokenId: number;
+
+    @Column()
     userId: string;
 
     @Column()

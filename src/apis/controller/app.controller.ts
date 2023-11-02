@@ -2,10 +2,7 @@ import { Controller, Get, Req, Res, Session } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AppService } from '../service/app.service';
 import * as querystring from 'querystring';
-import { session } from 'passport';
 import { MySession } from '../interface/session.interface';
-import { Token } from '../entities/token.entity';
-
 @Controller()
 export class AppController {
   appService: AppService;
@@ -24,7 +21,6 @@ export class AppController {
       return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
     }
     const token = await this.appService.getAuthorizationCode(code, session);
-    console.log(token)
 
     res.cookie('userId', token, {
       path: '/',

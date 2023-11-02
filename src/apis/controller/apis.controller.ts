@@ -1,8 +1,5 @@
 import { Controller, Get, Param, Delete, Req, Session, Post, Body } from '@nestjs/common';
-import { Request}  from 'express';
 import { ApisService } from '../service/apis.service';
-import { MySession } from '../interface/session.interface';
-import { Cookie } from 'express-session';
 
 @Controller("apis")
 export class ApisController {
@@ -16,6 +13,7 @@ export class ApisController {
 
   @Get('/command/:commandId')
   async command(@Param("commandId") commandId: string): Promise<string>{
+    console.log(commandId)
     const response = await this.apisService.executeCommand(commandId);
     return response;
   }

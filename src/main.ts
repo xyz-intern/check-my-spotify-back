@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './module/app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { WsAdapter } from '@nestjs/platform-ws';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   // Swagger Setting
@@ -16,6 +18,20 @@ async function bootstrap() {
 
   // WebSockter Setting
   app.useWebSocketAdapter(new WsAdapter(app));
+  app.use(cookieParser())
+
+  app.use(session({
+    secret: 'your-secret-key', // 복잡한 문자열로 수정
+    resave: false,
+    saveUninitialized: false, // 추가
+    cookie: {
+      secure: false,
+      path: '/',
+      domain: 'localhost',
+      sameSite: 'lax', // 'lax'로 수정
+      httpOnly: true, // 'true'로 수정
+    }
+  }));
   
   app.enableCors();
   await app.listen(3000);

@@ -11,7 +11,8 @@ export class ApisService {
     @InjectRepository(Playlist)
     private playlistRepository: Repository<Playlist>,
     @InjectRepository(Token)
-    private tokenRepository: Repository<Token>
+    private tokenRepository: Repository<Token>,
+    // private apisService: ApisService
   ) { }
 
   async getPlayingTrack(userId: string): Promise<string> {
@@ -115,11 +116,13 @@ export class ApisService {
     if(commandId == "play"){
       authOptions.url = "https://api.spotify.com/v1/me/player/play"
       success = await axios.put(authOptions.url, authOptions.form, {headers: authOptions.headers});
+      // this.apisService.executeCommand(commandId)
       if(success) return "음악이 재생되었습니다";
     }
     else if(commandId == "stop"){
       authOptions.url = "https://api.spotify.com/v1/me/player/pause"
       success = await axios.put(authOptions.url, authOptions.form, {headers: authOptions.headers});
+
       if(success) return "음악이 정지되었습니다";
     }else if(commandId == "next"){
       authOptions.url = "https://api.spotify.com/v1/me/player/next"

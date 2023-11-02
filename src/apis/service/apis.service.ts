@@ -5,7 +5,6 @@ import { Token } from '../entities/token.entity';
 import { Repository } from 'typeorm';
 import { Playlist } from '../entities/playlist.entity';
 import { PlaylistDto } from '../dto/playlist.dto';
-import { MySession } from '../interface/session.interface';
 @Injectable()
 export class ApisService {
   constructor(
@@ -16,7 +15,6 @@ export class ApisService {
   ) { }
 
   async getPlayingTrack(userId: string): Promise<string> {
-    console.log(userId)
     const user = await this.tokenRepository.findOne({ where: { userId } })
     const url = "https://api.spotify.com/v1/me/player/currently-playing"
     const headers = {
@@ -38,8 +36,9 @@ export class ApisService {
       const songName = response.data.item.name;
       const imageUri = response.data.item.album.images;
       const artistName = results.join(', ');
-      // const progress_ms = response.data.progress_ms;
-      const duration_ms = response.data.item.duration_ms
+      const progress_ms = parseInt(response.data.progress_ms);
+      const duration_ms = parseInt(response.data.item.duration_ms);
+      const current_ms = String(duration_ms - progress_ms);
 
       // console.log("재생시간", Number(duration_ms)-Number(progress_ms))
       const saveTrackData = new PlaylistDto();
@@ -69,8 +68,7 @@ export class ApisService {
         
         
       }
-      console.log("gdg", duration_ms)
-      return duration_ms;
+      return current_ms;
       
       
     } catch (error) {
@@ -117,7 +115,6 @@ export class ApisService {
     if(commandId == "play"){
       authOptions.url = "https://api.spotify.com/v1/me/player/play"
       success = await axios.put(authOptions.url, authOptions.form, {headers: authOptions.headers});
-      
       if(success) return "음악이 재생되었습니다";
     }
     else if(commandId == "stop"){

@@ -20,9 +20,9 @@ export class AppController {
     const state = req.query.state || null;
     const code = req.query.code || null;
 
-    // if (!state) {
-    //   return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
-    // }
+    if (!state) {
+      return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
+    }
     const token = await this.appService.getAuthorizationCode(code, session);
     console.log(token)
 

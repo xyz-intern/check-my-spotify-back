@@ -5,6 +5,7 @@ import { Token } from '../entities/token.entity';
 import { Repository } from 'typeorm';
 import { Playlist } from '../entities/playlist.entity';
 import { PlaylistDto } from '../dto/playlist.dto';
+import { AppService } from './app.service';
 @Injectable()
 export class ApisService {
   constructor(
@@ -12,9 +13,8 @@ export class ApisService {
     private playlistRepository: Repository<Playlist>,
     @InjectRepository(Token)
     private tokenRepository: Repository<Token>,
-    // @Inject(ApisService)
-    // private apisService: ApisService 
-  ) { }
+    private appService: AppService
+  ) {}
 
   async getPlayingTrack(userId: string): Promise<string> {
     const user = await this.tokenRepository.findOne({ where: { userId } })
@@ -42,22 +42,22 @@ export class ApisService {
       const duration_ms = parseInt(response.data.item.duration_ms);
       const current_ms = String(duration_ms - progress_ms);
 
-      // console.log("재생시간", Number(duration_ms)-Number(progress_ms))
+      console.log("재생시간", Number(duration_ms) - Number(progress_ms))
       const saveTrackData = new PlaylistDto();
 
       // 같은 곡 Play
       const duplication = await this.playlistRepository.findOne({
-        where: {songName: songName, artistName: artistName}
+        where: { songName: songName, artistName: artistName }
       })
 
-      if(duplication){
+      if (duplication) {
         const updateInfo = {
           ...duplication,
           count: duplication.count + 1
         }
 
         this.playlistRepository.update(updateInfo.songId, updateInfo);
-      }else{
+      } else {
         saveTrackData.userId = userId;
         saveTrackData.albumName = albumName;
         saveTrackData.artistName = artistName;
@@ -65,14 +65,12 @@ export class ApisService {
         saveTrackData.imageUri = imageUri.find((image) => image.height === 640).url
         saveTrackData.deviceId = device;
         saveTrackData.count = 1;
-  
+
         this.playlistRepository.save(saveTrackData);
-        
-        
+
       }
+      this.appService.sendSocketData(current_ms);
       return current_ms;
-      
-      
     } catch (error) {
       console.error(error);
     }
@@ -87,26 +85,25 @@ export class ApisService {
       json: true
     };
 
-    try{
+    try {
       const response = await axios.get(authOptions.url, { headers: authOptions.headers });
       const deviceId = response.data.devices[0].id;
       return deviceId;
-    }catch(error){
+    } catch (error) {
       console.log(error);
     }
-    
+
   }
 
-  
-  async executeCommand(commandId: string): Promise<string> {
+
+  async executeCommand(commandId: string, userId: string): Promise<string> {
     let success = "";
-    const userId = "dlatldhs";
-    const user = await this.tokenRepository.findOne({ where: {userId} })
+    const user = await this.tokenRepository.findOne({ where: { userId } })
     const deviceId = await this.getDeviceId(user.accessToken);
 
     let authOptions = {
       url: '',
-      form: { 
+      form: {
         'device_id': deviceId
       },
       headers: {
@@ -114,26 +111,26 @@ export class ApisService {
       }
     };
 
-    if(commandId == "play"){
+    if (commandId == "play") {
       authOptions.url = "https://api.spotify.com/v1/me/player/play"
-      success = await axios.put(authOptions.url, authOptions.form, {headers: authOptions.headers});
-      // this.apisService.executeCommand(commandId)
-      if(success) return "음악이 재생되었습니다";
+      success = await axios.put(authOptions.url, authOptions.form, { headers: authOptions.headers });
+      this.getPlayingTrack(userId);
+      if (success) return "음악이 재생되었습니다";
     }
-    else if(commandId == "stop"){
+    else if (commandId == "stop") {
       authOptions.url = "https://api.spotify.com/v1/me/player/pause"
-      success = await axios.put(authOptions.url, authOptions.form, {headers: authOptions.headers});
+      success = await axios.put(authOptions.url, authOptions.form, { headers: authOptions.headers });
 
-      if(success) return "음악이 정지되었습니다";
-    }else if(commandId == "next"){
+      if (success) return "음악이 정지되었습니다";
+    } else if (commandId == "next") {
       authOptions.url = "https://api.spotify.com/v1/me/player/next"
       console.log(authOptions)
-      success = await axios.post(authOptions.url, authOptions.form, {headers: authOptions.headers});
-      if(success) return "다음곡으로 전환하였습니다";
-    }else if(commandId == "previous"){
+      success = await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
+      if (success) return "다음곡으로 전환하였습니다";
+    } else if (commandId == "previous") {
       authOptions.url = "https://api.spotify.com/v1/me/player/previous"
-      success = await axios.post(authOptions.url, authOptions.form, {headers: authOptions.headers});
-      if(success) return "이전곡으로 전환하였습니다";
-    } 
-}
+      success = await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
+      if (success) return "이전곡으로 전환하였습니다";
+    }
+  }
 }

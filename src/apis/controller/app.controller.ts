@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, Session } from '@nestjs/common';
+import { Controller, Get, Param, Req, Res, Session } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AppService } from '../service/app.service';
 import * as querystring from 'querystring';
@@ -22,7 +22,22 @@ export class AppController {
     }
     const token = await this.appService.getAuthorizationCode(code, session);
 
-    res.cookie('userId', token, {
+    res.cookie('accessToken',token.access_token, {
+      path: '/',
+      domain: 'localhost',
+      httpOnly: false,
+      secure: true,
+      sameSite: 'none',
+    });
+
+    res.cookie('expiresIn', token.expires_in, {
+      path: '/',
+      domain: 'localhost',
+      httpOnly: false,
+      secure: true,
+      sameSite: 'none',
+    });
+    res.cookie('refreshToken', token.refresh_token, {
       path: '/',
       domain: 'localhost',
       httpOnly: false,
@@ -35,5 +50,11 @@ export class AppController {
     })
 
   }
-}
 
+
+  @Get("/reAccessToken/:refreshToken")
+  async getReAccessToken(@Param("refreshToken") refreshToken: string): Promise<void> {
+    const reissue =  await this.appService.getReAccessToken(refreshToken);
+    console.log(reissue);
+  }
+}

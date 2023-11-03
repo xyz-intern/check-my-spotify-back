@@ -2,10 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Token } from '../entities/token.entity';
 import { Request, Response } from 'express';
-import { Repository } from 'typeorm';
+import { ObjectType, Repository } from 'typeorm';
 import axios from 'axios';
 import { MySession } from '../interface/session.interface';
 import { Server, WebSocket } from 'ws';
+import { MyToken } from '../interface/token.interface';
 const net = require('net')
 
 @Injectable()
@@ -17,7 +18,7 @@ export class AppService {
 
 
 
-  async getAuthorizationCode(code: Object, session: MySession): Promise<string> {
+  async getAuthorizationCode(code: Object, session: MySession): Promise<MyToken> {
     // AccessToken & RefreshToken 요청하기
     let authOptions = {
       url: 'https://accounts.spotify.com/api/token',
@@ -39,7 +40,6 @@ export class AppService {
     try {
       // HttpModule Post 요청
       const response = await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
-      console.log(JSON.stringify(response.data));
       const data = JSON.stringify(response.data)
       const access_token = JSON.stringify(response.data.access_token).replace(/"/g, '');
       const refresh_token = JSON.stringify(response.data.refresh_token).replace(/"/g, '');
@@ -57,11 +57,10 @@ export class AppService {
         accessToken: access_token,
       })
 
+
       // Token database 저장
       await this.tokenRepository.save(token);
-      // const acessToken_reissue = await this.getReAccessToken(refresh_token);
-      // console.log(acessToken_reissue)
-      return token.userId
+      return JSON.parse(data);
     } catch (error) {
       console.error(error);
 
@@ -69,12 +68,12 @@ export class AppService {
 
   }
 
-  async sendSocketData(userName: string) {
+  async sendSocketData(data: string) {
       const client = new net.Socket;
 
         client.connect(process.env.SERVER_PORT, process.env.SERVER_IP, function () {
           console.log("Connected to the server")
-          client.write(userName)
+          client.write(data)
         })
         client.on('data', function (data) {
           console.log("Received from the server" + data)

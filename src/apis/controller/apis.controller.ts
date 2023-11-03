@@ -11,10 +11,10 @@ export class ApisController {
     return duration_ms;
   }
 
-  @Get('/command/:commandId')
-  async command(@Param("commandId") commandId: string): Promise<string>{
-    console.log(commandId)
-    const response = await this.apisService.executeCommand(commandId);
+  @Post('/command')
+  async command(@Body("command") command: string, @Body("user_id") user_id: string): Promise<string>{
+    console.log(command, user_id)
+    const response = await this.apisService.executeCommand(command, user_id);
     return response;
   }
 }

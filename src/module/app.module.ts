@@ -35,5 +35,6 @@ import { EventsModule } from 'src/socket/event.module';
   ],
   controllers: [AppController],
   providers: [AppService],
+  exports: [AppService]
 })
 export class AppModule { }

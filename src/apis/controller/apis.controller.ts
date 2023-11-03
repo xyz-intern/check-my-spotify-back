@@ -4,9 +4,9 @@ import { ApisService } from '../service/apis.service';
 @Controller("apis")
 export class ApisController {
   constructor(private readonly apisService: ApisService) {}
-  @Get('/getTrack/:userId')
-  async getTrack(@Param('userId') userId: string): Promise<string> {
-    const duration_ms = await this.apisService.getPlayingTrack(userId);
+  @Get('/getTrack/:user_id')
+  async getTrack(@Param('user_id') user_id: string): Promise<string> {
+    const duration_ms = await this.apisService.getPlayingTrack(user_id);
     console.log("duration_ms", duration_ms);
     return duration_ms;
   }

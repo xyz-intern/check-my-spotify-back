@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import axios from 'axios';
 import { MySession } from '../interface/session.interface';
 import { Server, WebSocket } from 'ws';
+const net = require('net')
 
 @Injectable()
 export class AppService {
@@ -13,6 +14,7 @@ export class AppService {
     @InjectRepository(Token)
     private tokenRepository: Repository<Token>
   ) { }
+
 
 
   async getAuthorizationCode(code: Object, session: MySession): Promise<string> {
@@ -44,24 +46,10 @@ export class AppService {
       const userName = await this.getUserProfile(access_token);
 
       session.userName = userName;
-      // if(data){
-      //   this.sendSocketData(session.userName)
-      // }
 
-      const socket = new WebSocket(process.env.SOCKET_URI);
-
-      socket.addEventListener('open', () => {
-        console.log('서버에 연결되었습니다.');
-        socket.send(JSON.stringify(session.userName));
-      });
-
-      socket.addEventListener('message', (event) => {
-        console.log('서버로부터 메시지를 받았습니다:', event.data);
-      });
-
-      socket.addEventListener('close', () => {
-        console.log('서버와의 연결이 종료되었습니다.');
-      });
+      if (data) {
+        this.sendSocketData(session.userName);
+      }
 
       const token = this.tokenRepository.create({
         userId: userName,
@@ -81,9 +69,21 @@ export class AppService {
 
   }
 
-  async sendSocketData(userName: string){
-    
+  async sendSocketData(userName: string) {
+      const client = new net.Socket;
 
+        client.connect(process.env.SERVER_PORT, process.env.SERVER_IP, function () {
+          console.log("Connected to the server")
+          client.write(userName)
+        })
+        client.on('data', function (data) {
+          console.log("Received from the server" + data)
+          // client.destory();
+        })
+
+        client.on('close', function () {
+          console.log('Connection closed')
+        })
   }
 
   async getUserProfile(accessToken: string): Promise<string> {

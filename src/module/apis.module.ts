@@ -10,6 +10,7 @@ import { Playlist } from '../apis/entities/playlist.entity';
   imports: [TypeOrmModule.forFeature([Token, Playlist, TokenRepository]), 
 ],
   controllers: [ApisController],
+  exports: [ApisService],
   providers: [ApisService],
 })
 export class ApisModule {}

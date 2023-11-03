@@ -8,6 +8,7 @@ import { Token } from '../apis/entities/token.entity';
 import { TokenRepository } from '../apis/repository/app.repository';
 import { Playlist } from '../apis/entities/playlist.entity';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ApisService } from 'src/apis/service/apis.service';
 import { EventsModule } from 'src/socket/event.module';
 
 
@@ -30,8 +31,9 @@ import { EventsModule } from 'src/socket/event.module';
       autoLoadEntities: true
     }),
     TypeOrmModule.forFeature([Token, TokenRepository]),
+
   ],
   controllers: [AppController],
-  providers: [AppService,],
+  providers: [AppService],
 })
 export class AppModule { }

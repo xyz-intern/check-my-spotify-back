@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import axios from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Token } from '../entities/token.entity';
@@ -12,7 +12,8 @@ export class ApisService {
     private playlistRepository: Repository<Playlist>,
     @InjectRepository(Token)
     private tokenRepository: Repository<Token>,
-    // private apisService: ApisService
+    // @Inject(ApisService)
+    // private apisService: ApisService 
   ) { }
 
   async getPlayingTrack(userId: string): Promise<string> {

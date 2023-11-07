@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Req, Res, Session } from '@nestjs/common';
+import { Controller, Get, Param, Req, Res, Session, UseFilters } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AppService } from '../service/app.service';
 import * as querystring from 'querystring';
 import { MySession } from '../interface/session.interface';
+
 @Controller()
 export class AppController {
   appService: AppService;
@@ -20,6 +21,7 @@ export class AppController {
     if (!state) {
       return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
     }
+    
     const token = await this.appService.getAuthorizationCode(code, session);
 
     res.cookie('accessToken',token.access_token, {
@@ -50,7 +52,6 @@ export class AppController {
     })
 
   }
-
 
   @Get("/reAccessToken/:refreshToken")
   async getReAccessToken(@Param("refreshToken") refreshToken: string): Promise<void> {

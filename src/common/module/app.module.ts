@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
-import { AppController } from '../apis/controller/app.controller';
-import { AppService } from '../apis/service/app.service';
+import { AppController } from '../../apis/controller/app.controller';
+import { AppService } from '../../apis/service/app.service';
 import { ConfigModule } from '@nestjs/config'
 import { ApisModule } from './apis.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Token } from '../apis/entities/token.entity';
-import { TokenRepository } from '../apis/repository/app.repository';
-import { Playlist } from '../apis/entities/playlist.entity';
+import { Token } from '../../apis/entities/token.entity';
+import { TokenRepository } from '../../apis/repository/app.repository';
+import { Playlist } from '../../apis/entities/playlist.entity';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ApisService } from 'src/apis/service/apis.service';
-import { EventsModule } from 'src/socket/event.module';
+import { APP_FILTER } from '@nestjs/core';
+import { EventsModule } from 'src/common/socket/event.module';
 
 
 @Module({

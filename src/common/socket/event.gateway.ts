@@ -1,12 +1,9 @@
 import {
-    MessageBody,
     SubscribeMessage,
     WebSocketGateway,
     WebSocketServer,
-    WsResponse,
-
 } from '@nestjs/websockets';
-import { Server, WebSocket } from 'ws';
+import { Server } from 'ws';
 
 @WebSocketGateway(8765)
 export class EventsGateway {

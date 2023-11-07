@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './module/app.module';
+import { AppModule } from './common/module/app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { WsAdapter } from '@nestjs/platform-ws';
 import session from 'express-session';
@@ -20,6 +20,10 @@ async function bootstrap() {
   app.useWebSocketAdapter(new WsAdapter(app));
   app.use(cookieParser())
 
+
+  // app.useGlobalFilters(new HttpExceptionFilter());ㅇ
+
+  // Session 설정
   app.use(session({
     secret: 'your-secret-key', // 복잡한 문자열로 수정
     resave: false,

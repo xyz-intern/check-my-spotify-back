@@ -1,16 +1,15 @@
-import { HttpStatus, Injectable, UnauthorizedException, UseFilters } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Token } from '../entities/token.entity';
+import { Token } from './entities/token.entity';
 import { Repository } from 'typeorm';
 import axios from 'axios';
-import { MySession } from '../interface/session.interface';
-import { MyToken } from '../interface/token.interface';
-import { CustomException } from 'src/common/exception/custom.exception';
-import { config } from 'process';
-const net = require('net')
+import { MySession } from '../common/interface/session.interface';
+import { MyToken } from '../user/interface/token.interface';
+import { CustomException } from '../common/exception/custom.exception';
+import * as net from 'net';
 
 @Injectable()
-export class AppService {
+export class UserService {
   constructor(
     @InjectRepository(Token)
     private tokenRepository: Repository<Token>
@@ -38,6 +37,7 @@ export class AppService {
 
     try {
       const response = await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
+
       const data = JSON.stringify(response.data);
       const access_token = JSON.stringify(response.data.access_token).replace(/"/g, '');
       const refresh_token = JSON.stringify(response.data.refresh_token).replace(/"/g, '');
@@ -62,7 +62,6 @@ export class AppService {
 
   // 로그인 시 유저 정보 가져오기
   async getUserProfile(accessToken: string): Promise<string> {
-    // get Current User's Profile
     const authOptions = {
       'url': 'https://api.spotify.com/v1/me',
       headers: {
@@ -83,7 +82,7 @@ export class AppService {
   }
 
   // AccessToken 재발급
-  async getReAccessToken(refresh_token: string): Promise<Object> {
+  async getReAccessToken(refresh_token: string): Promise<string> {
     var authOptions = {
       url: 'https://accounts.spotify.com/api/token',
       headers: {
@@ -103,7 +102,9 @@ export class AppService {
     this.AxiosErrorinterceptor();
 
     try {
-      return await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
+      const response =  await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
+
+      return response.data.access_token;
     } catch (error) {
       console.error(error);
     }
@@ -113,7 +114,7 @@ export class AppService {
   async sendSocketData(data: string) {
     const client = new net.Socket;
 
-    client.connect(process.env.SERVER_PORT, process.env.SERVER_IP, function () {
+    client.connect(+process.env.SERVER_PORT, process.env.SERVER_IP, function () {
       console.log("Connected to the server")
       client.write(data)
     })
@@ -124,6 +125,14 @@ export class AppService {
     client.on('close', function () {
       console.log('Connection closed')
     })
+
+    client.on('error', (err) => {
+      if (err.message.includes('ECONNREFUSED')) {
+        console.log('Connection refused to the server. Please check your server status or IP address.');
+      } else {
+        console.log('An unexpected error occurred:', err.message);
+      }
+    });
   }
 
   async AxiosErrorinterceptor() {
@@ -132,9 +141,6 @@ export class AppService {
       (error) => {
         if (error.response && error.response.status === 400) {
           throw new CustomException("잘못된 요청입니다", 400);
-        }
-        else if (error.response.status === 401) {
-          throw new CustomException("토큰이 만료되었습니다", 401);
         }
         throw error;
       }

@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './common/module/app.module';
+import { UserModule } from './user/user.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { WsAdapter } from '@nestjs/platform-ws';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(UserModule);
   // Swagger Setting
   const config = new DocumentBuilder()
     .setTitle('Spotify example')
@@ -20,20 +21,19 @@ async function bootstrap() {
   app.useWebSocketAdapter(new WsAdapter(app));
   app.use(cookieParser())
 
-
-  // app.useGlobalFilters(new HttpExceptionFilter());ㅇ
-
   // Session 설정
   app.use(session({
-    secret: 'your-secret-key', // 복잡한 문자열로 수정
+    secret: 'your-secret-key',
     resave: false,
-    saveUninitialized: false, // 추가
+    saveUninitialized: false,
+
     cookie: {
       secure: false,
       path: '/',
       domain: 'localhost',
-      sameSite: 'lax', // 'lax'로 수정
-      httpOnly: true, // 'true'로 수정
+      sameSite: 'lax',
+      // maxAge: 3600,
+      httpOnly: true,
     }
   }));
   

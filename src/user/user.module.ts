@@ -1,19 +1,18 @@
 import { Module } from '@nestjs/common';
-import { AppController } from '../../apis/controller/app.controller';
-import { AppService } from '../../apis/service/app.service';
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
 import { ConfigModule } from '@nestjs/config'
-import { ApisModule } from './apis.module';
+import { PlaylistModule } from '../playlist/playlist.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Token } from '../../apis/entities/token.entity';
-import { TokenRepository } from '../../apis/repository/app.repository';
-import { Playlist } from '../../apis/entities/playlist.entity';
+import { Token } from './entities/token.entity';
+import { TokenRepository } from './user.repository';
+import { Playlist } from '../playlist/entities/playlist.entity';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_FILTER } from '@nestjs/core';
-import { EventsModule } from 'src/common/socket/event.module';
+import { EventsModule } from 'src/socket/event.module';
 
 
 @Module({
-  imports: [ApisModule,
+  imports: [PlaylistModule,
     EventsModule,
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
@@ -33,8 +32,8 @@ import { EventsModule } from 'src/common/socket/event.module';
     TypeOrmModule.forFeature([Token, TokenRepository]),
 
   ],
-  controllers: [AppController],
-  providers: [AppService],
-  exports: [AppService]
+  controllers: [UserController],
+  providers: [UserService],
+  exports: [UserService]
 })
-export class AppModule { }
+export class UserModule { }

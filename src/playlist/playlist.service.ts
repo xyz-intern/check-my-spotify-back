@@ -1,26 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Token } from '../entities/token.entity';
+import { Token } from '../user/entities/token.entity';
 import { Repository } from 'typeorm';
-import { Playlist } from '../entities/playlist.entity';
-import { PlaylistDto } from '../dto/playlist.dto';
-import { AppService } from './app.service';
+import { Playlist } from './entities/playlist.entity';
+import { PlaylistDto } from './dto/playlist.dto';
+import { UserService } from '../user/user.service';
 import { CustomException } from 'src/common/exception/custom.exception';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
 
 @Injectable()
-export class ApisService {
+export class PlaylistService {
   constructor(
     @InjectRepository(Playlist)
     private playlistRepository: Repository<Playlist>,
     @InjectRepository(Token)
     private tokenRepository: Repository<Token>,
-    private appService: AppService
+    private userService: UserService
   ) { }
 
   // 현재 듣고 있는 트랙 가져오기
-  async getPlayingTrack(userId: string): Promise<PlaylistDto | undefined> {
+  async getPlayingTrack(userId: string): Promise<string> {
     const user = await this.tokenRepository.findOne({ where: { userId } })
 
     if (!user) throw new CustomException('사용자를 찾을 수 없습니다', HttpStatus.NOT_FOUND);
@@ -77,8 +77,9 @@ export class ApisService {
       saveTrackData.count = 1;
 
       this.playlistRepository.save(saveTrackData);
-      await this.appService.sendSocketData(current_ms);
-      return saveTrackData;
+      await this.userService.sendSocketData(current_ms);
+      const responseData = saveTrackData.songName+"|"+ saveTrackData.artistName;
+      return responseData;
     } catch (error) {
       console.log(error)
     }
@@ -107,7 +108,7 @@ export class ApisService {
   }
 
 
-  // 명령어(play/stop/next/previous) 실행하기
+  // Command(play/stop/next/previous) 실행하기
   async executeCommand(commandId: string, userId: string): Promise<string | PlaylistDto> {
     let success = "";
     const user = await this.tokenRepository.findOne({ where: { userId } })
@@ -126,10 +127,9 @@ export class ApisService {
       }
     };
 
-    this.AxiosErrorInterceptor();
-
       if (commandId == "play") {
         authOptions.url = "https://api.spotify.com/v1/me/player/play"
+        this.AxiosErrorInterceptor();
         success = await axios.put(authOptions.url, authOptions.form, { headers: authOptions.headers });
         const data = await this.getPlayingTrack(userId)
         if (success) return data;

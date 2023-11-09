@@ -37,11 +37,11 @@ export class UserService {
 
     try {
       const response = await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
-
-      const data = JSON.stringify(response.data);
-      const access_token = JSON.stringify(response.data.access_token).replace(/"/g, '');
-      const refresh_token = JSON.stringify(response.data.refresh_token).replace(/"/g, '');
+      const data = response.data;
+      const access_token = response.data.access_token.replace(/"/g, '');
+      const refresh_token = response.data.refresh_token.replace(/"/g, '');
       const userName = await this.getUserProfile(access_token);
+
 
       session.userName = userName;
 
@@ -54,7 +54,7 @@ export class UserService {
       });
 
       await this.tokenRepository.save(token);
-      return JSON.parse(data);
+      return token;
     } catch (error) {
       console.log(error);
     }
@@ -82,7 +82,7 @@ export class UserService {
   }
 
   // AccessToken 재발급
-  async getReAccessToken(refresh_token: string): Promise<string> {
+  async getReAccessToken(refresh_token: string, userId: string): Promise<any> {
     var authOptions = {
       url: 'https://accounts.spotify.com/api/token',
       headers: {
@@ -93,7 +93,6 @@ export class UserService {
       },
       form: {
         'grant_type': 'refresh_token',
-        // 사용자가 이전에 받았던 refresh_token
         'refresh_token': refresh_token
       },
       json: true
@@ -102,9 +101,14 @@ export class UserService {
     this.AxiosErrorinterceptor();
 
     try {
-      const response =  await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
-
-      return response.data.access_token;
+      const response = await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
+      const user = await this.tokenRepository.findOne({where: {userId}});
+      const updateToken = {
+        ...user,
+        accessToken: response.data.access_token
+      }
+      const sucess = await this.tokenRepository.update(user.tokenId, updateToken)
+      if (sucess) "액세스 토큰이 재발급 되었습니다.";
     } catch (error) {
       console.error(error);
     }
@@ -135,6 +139,7 @@ export class UserService {
     });
   }
 
+  // Exception Handler
   async AxiosErrorinterceptor() {
     axios.interceptors.response.use(
       (response) => { return response; },

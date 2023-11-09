@@ -1,9 +1,10 @@
 export class PlaylistDto {
-    userId: string;
-    artistName: string;
-    songName: string;
-    imageUri: string;
-    albumName: string;
-    deviceId: string;
-    count: number;
+    constructor(
+        public ref_userId: string = '', 
+        public albumName: string = '', 
+        public artistName: string = '',
+        public songName: string = '', 
+        public imageUri: string = '', 
+        public deviceId: string = '',
+        public count: number = 0){ }
 }

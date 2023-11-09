@@ -45,7 +45,7 @@ export class UserController {
 
   @Get("/reissue/:refreshToken/:userId")
   async getReAccessToken(@Param("refreshToken") refreshToken: string, @Param("userId") userId: string): Promise<string> {
-    console.log(refreshToken, userId)
+    console.log(refreshToken, userId);
     const reissue = await this.userService.getReAccessToken(refreshToken, userId);
     return reissue;
   }

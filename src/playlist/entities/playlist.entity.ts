@@ -1,11 +1,11 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { type } from "os";
+import { Token } from "src/user/entities/token.entity";
+import { Column, Entity, JoinColumn, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Playlist {
     @PrimaryGeneratedColumn()
     songId: number;
-    @Column()
-    userId: string;
     @Column()
     artistName: string;
     @Column()
@@ -18,4 +18,10 @@ export class Playlist {
     deviceId: string;
     @Column()
     count: number;
+    @Column()
+    ref_userId: string;
+
+    @ManyToOne(type => Token, token => token.playlist)
+    @JoinColumn({name: "ref_userId"})
+    token: Token
 }

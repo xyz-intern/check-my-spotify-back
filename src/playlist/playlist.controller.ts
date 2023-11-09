@@ -11,7 +11,6 @@ export class PlaylistController {
 
   @Post('/command')
   async command(@Body("command") command: string, @Body("user_id") user_id: string): Promise<object | string> {
-    console.log(command, user_id)
     return await this.PlaylistService.executeCommand(command, user_id);
   }
 }

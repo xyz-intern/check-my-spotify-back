@@ -82,7 +82,7 @@ export class UserService {
   }
 
   // AccessToken 재발급
-  async getReAccessToken(refresh_token: string, userId: string): Promise<any> {
+  async getReAccessToken(refresh_token: string, userId: string): Promise<string> {
     var authOptions = {
       url: 'https://accounts.spotify.com/api/token',
       headers: {
@@ -107,8 +107,8 @@ export class UserService {
         ...user,
         accessToken: response.data.access_token
       }
-      const sucess = await this.tokenRepository.update(user.tokenId, updateToken)
-      if (sucess) "액세스 토큰이 재발급 되었습니다.";
+      const sucess = await this.tokenRepository.update(user.userId, updateToken)
+      if (sucess) return "액세스 토큰이 재발급 되었습니다.";
     } catch (error) {
       console.error(error);
     }

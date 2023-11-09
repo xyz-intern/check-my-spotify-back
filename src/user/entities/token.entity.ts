@@ -1,10 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { type } from 'os';
+import { Playlist } from 'src/playlist/entities/playlist.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, PrimaryColumn } from 'typeorm';
 @Entity()
 export class Token {
-    @PrimaryGeneratedColumn()
-    tokenId: number;
-
-    @Column()
+    @PrimaryColumn('varchar', {length: 255})
     userId: string;
 
     @Column()
@@ -15,4 +14,7 @@ export class Token {
 
     @Column('boolean', {default: false})
     refreshToken_expiration: boolean;
+
+    @OneToMany(type => Playlist, playlist => playlist.token)
+    playlist: Playlist[];
 }

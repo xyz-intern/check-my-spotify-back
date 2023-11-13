@@ -42,7 +42,6 @@ export class UserService {
       const refresh_token = response.data.refresh_token.replace(/"/g, '');
       const userName = await this.getUserProfile(access_token);
 
-
       session.userName = userName;
 
       if (data) this.sendSocketData(session.userName);
@@ -74,8 +73,7 @@ export class UserService {
 
     try {
       const response = await axios.get(authOptions.url, { headers: authOptions.headers });
-      const display_name = JSON.stringify(response.data.display_name).replace(/"/g, '');
-      return display_name;
+      return JSON.stringify(response.data.display_name).replace(/"/g, '');
     } catch (error) {
       console.log(error);
     }

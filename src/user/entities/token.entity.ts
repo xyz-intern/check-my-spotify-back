@@ -1,6 +1,5 @@
-import { type } from 'os';
 import { Playlist } from 'src/playlist/entities/playlist.entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, PrimaryColumn } from 'typeorm';
+import { Entity, Column, OneToMany, PrimaryColumn } from 'typeorm';
 @Entity()
 export class Token {
     @PrimaryColumn('varchar', {length: 255})

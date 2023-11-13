@@ -1,10 +1,12 @@
+import { Token } from "src/user/entities/token.entity";
 export class PlaylistDto {
-    constructor(
-        public ref_userId: string = '', 
-        public albumName: string = '', 
-        public artistName: string = '',
-        public songName: string = '', 
-        public imageUri: string = '', 
-        public deviceId: string = '',
-        public count: number = 0){ }
+    songId: number;
+    artistName: string;
+    songName: string;
+    imageUri: string;
+    albumName: string;
+    deviceId: string;
+    count: number;
+    // foreign key
+    token: Token;
 }

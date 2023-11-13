@@ -2,12 +2,13 @@ import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Token } from '../user/entities/token.entity';
-import { Repository } from 'typeorm';
+import { Repository, getCustomRepository } from 'typeorm';
 import { Playlist } from './entities/playlist.entity';
 import { PlaylistDto } from './dto/playlist.dto';
 import { UserService } from '../user/user.service';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { HttpStatus } from '@nestjs/common';
+import { TokenRepository } from 'src/user/user.repository';
 
 @Injectable()
 export class PlaylistService {
@@ -32,24 +33,20 @@ export class PlaylistService {
 
     try {
       const response = await axios.get(url, { headers });
+      const data = response.data.item;
+      let artists = Object.values(data.artists);
+      const artistName = artists.map(artist => artist['name']).join(', ');
 
-      let artists = response.data.item.artists;
-      let singers = Object.values(artists);
       const device = await this.getDeviceId(user.accessToken);
+      const albumName = data.album.name;
+      const songName = data.name;
+      const imageUri = data.album.images;
 
-      let results = [];
-
-      // 다중 ArtistName 가져오기
-      for (let i = 0; i < singers.length; i++) results[i] = singers[i]['name'];
-      const albumName = response.data.item.album.name;
-      const songName = response.data.item.name;
-      const imageUri = response.data.item.album.images;
-      const artistName = results.join(', ');
       const progress_ms = parseInt(response.data.progress_ms);
-      const duration_ms = parseInt(response.data.item.duration_ms);
+      const duration_ms = parseInt(data.duration_ms);
       const current_ms = String(duration_ms - progress_ms);
 
-      // 같은 곡 재생 시
+      // 같은 곡 재생
       const duplication = await this.playlistRepository.findOne({
         where: { songName: songName, artistName: artistName }
       })
@@ -65,21 +62,28 @@ export class PlaylistService {
         return "같은 곡입니다.";
       }
       else {
+        const playlist = new Playlist();
+        const token: Token = playlist.token;
 
-        const saveTrackData = new PlaylistDto(userId, albumName, artistName, songName,
-          imageUri.find((image) => image.height === 640).url, device, 1);
+        const saveTrackData = new PlaylistDto();
+        saveTrackData.token = token;
+        saveTrackData.albumName = albumName;
+        saveTrackData.artistName = artistName;
+        saveTrackData.songName = songName;
+        saveTrackData.count = 1;
+        saveTrackData.deviceId = device;
+        saveTrackData.imageUri = imageUri.find((image) => image.height === 640).url;
+
 
         await this.playlistRepository.save(saveTrackData);
-        
         await this.userService.sendSocketData(current_ms);
-        const responseData = saveTrackData.songName + "|" + saveTrackData.artistName;
-        return responseData;
+        return saveTrackData.songName + "|" + saveTrackData.artistName;
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.log(error)
     }
   }
-
 
   // 디바이스 이름 가져오기
   async getDeviceId(accessToken: string): Promise<string> {
@@ -95,8 +99,7 @@ export class PlaylistService {
 
     try {
       const response = await axios.get(authOptions.url, { headers: authOptions.headers });
-      const deviceId = response.data.devices[0].id;
-      return deviceId;
+      return response.data.devices[0].id;
     } catch (error) {
       console.log(error);
     }

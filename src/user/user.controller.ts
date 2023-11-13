@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, Res, Session } from '@nestjs/common';
+import { Controller, Get, Param, Req, Res, Session } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { UserService } from './user.service';
 import * as querystring from 'querystring';
@@ -45,8 +45,7 @@ export class UserController {
 
   @Get("/reissue/:refreshToken/:userId")
   async getReAccessToken(@Param("refreshToken") refreshToken: string, @Param("userId") userId: string): Promise<string> {
-    console.log(refreshToken, userId);
-    const reissue = await this.userService.getReAccessToken(refreshToken, userId);
-    return reissue;
+    console.log("refreshToken, userId", refreshToken, userId)
+    return await this.userService.getReAccessToken(refreshToken, userId);
   }
 }

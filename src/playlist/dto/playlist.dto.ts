@@ -7,6 +7,5 @@ export class PlaylistDto {
     albumName: string;
     deviceId: string;
     count: number;
-    // foreign key
     token: Token;
 }

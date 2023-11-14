@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Token } from './entities/token.entity';
 import { Repository } from 'typeorm';
 import axios from 'axios';
-import { MySession } from '../common/interface/session.interface';
+import { MySession } from './interface/session.interface';
 import { MyToken } from '../user/interface/token.interface';
 import { CustomException } from '../common/exception/custom.exception';
 import * as net from 'net';

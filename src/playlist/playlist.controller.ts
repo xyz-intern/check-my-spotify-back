@@ -13,4 +13,19 @@ export class PlaylistController {
   async command(@Body("command") command: string, @Body("user_id") user_id: string): Promise<object | string> {
     return await this.PlaylistService.executeCommand(command, user_id);
   }
+
+  @Get('/favorite/song')
+  async favoriteSongs(): Promise<object> {
+    return await this.PlaylistService.favoriteSongs();
+  }
+
+  @Get('/heard/artists')
+  async lovitArtists(): Promise<object> {
+    return await this.PlaylistService.heardALotArtists();
+  }
+
+  @Get('/last/song')
+  async lastSongs(): Promise<object> {
+    return await this.PlaylistService.lastSongs();
+  }
 }

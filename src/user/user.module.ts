@@ -9,11 +9,9 @@ import { TokenRepository } from './user.repository';
 import { Playlist } from '../playlist/entities/playlist.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventsModule } from 'src/socket/event.module';
-import { SortModule } from 'src/sort/sort.module';
 
 @Module({
   imports: [PlaylistModule,
-    SortModule,
     EventsModule,
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({

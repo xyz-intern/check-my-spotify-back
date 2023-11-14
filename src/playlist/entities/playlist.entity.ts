@@ -24,9 +24,7 @@ export class Playlist {
     @Column()
     count: number;
 
-    @ManyToOne(type => Token, token => token.playlist)
+    @ManyToOne(type => Token, token => token.playlist, {nullable: false})
     @JoinColumn({ name: "userId" })
-    token: Token;
-
-   
+    token: Token;   
 }

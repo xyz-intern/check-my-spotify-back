@@ -2,7 +2,7 @@ import { Controller, Get, Param, Req, Res, Session } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { UserService } from './user.service';
 import * as querystring from 'querystring';
-import { MySession } from '../common/interface/session.interface';
+import { MySession } from './interface/session.interface';
 
 @Controller()
 export class UserController {

@@ -2,13 +2,12 @@ import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Token } from '../user/entities/token.entity';
-import { Repository, getCustomRepository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Playlist } from './entities/playlist.entity';
 import { PlaylistDto } from './dto/playlist.dto';
 import { UserService } from '../user/user.service';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { HttpStatus } from '@nestjs/common';
-import { TokenRepository } from 'src/user/user.repository';
 
 @Injectable()
 export class PlaylistService {
@@ -38,9 +37,6 @@ export class PlaylistService {
       const artistName = artists.map(artist => artist['name']).join(', ');
 
       const device = await this.getDeviceId(user.accessToken);
-      const albumName = data.album.name;
-      const songName = data.name;
-      const imageUri = data.album.images;
 
       const progress_ms = parseInt(response.data.progress_ms);
       const duration_ms = parseInt(data.duration_ms);
@@ -48,32 +44,27 @@ export class PlaylistService {
 
       // 같은 곡 재생
       const duplication = await this.playlistRepository.findOne({
-        where: { songName: songName, artistName: artistName }
+        where: { songName: data.name, artistName: artistName }
       })
 
-      // count ++
-      if (duplication != null) {
+      if (duplication) {
         const updateInfo = {
           ...duplication,
           count: duplication.count + 1
         }
 
-        this.playlistRepository.update(updateInfo.songId, updateInfo);
-        return "같은 곡입니다.";
+        await this.playlistRepository.update(updateInfo.songId, updateInfo);
+        return duplication.songName + "|" + duplication.artistName;
       }
       else {
-        const playlist = new Playlist();
-        const token: Token = playlist.token;
-
         const saveTrackData = new PlaylistDto();
-        saveTrackData.token = token;
-        saveTrackData.albumName = albumName;
+        saveTrackData.token = user;
+        saveTrackData.albumName = data.album.name;
         saveTrackData.artistName = artistName;
-        saveTrackData.songName = songName;
+        saveTrackData.songName = data.name;
         saveTrackData.count = 1;
         saveTrackData.deviceId = device;
-        saveTrackData.imageUri = imageUri.find((image) => image.height === 640).url;
-
+        saveTrackData.imageUri = data.album.images.find((image) => image.height === 640).url;
 
         await this.playlistRepository.save(saveTrackData);
         await this.userService.sendSocketData(current_ms);
@@ -105,7 +96,7 @@ export class PlaylistService {
     }
   }
 
-  // Command(play/stop/next/previous) 실행하기
+  // Command 실행하기
   async executeCommand(commandId: string, userId: string): Promise<string | PlaylistDto> {
     const user = await this.tokenRepository.findOne({ where: { userId } });
     if (!user) throw new CustomException("사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND);
@@ -159,6 +150,27 @@ export class PlaylistService {
       }
     );
   }
-}
 
+  // 가장 많이 들은 노래순
+  async favoriteSongs(): Promise<object> {
+    return await this.playlistRepository.find({ order: { count: 'DESC' } })
+  }
+
+  // 가장 많이 들은 아티스트
+  async heardALotArtists(): Promise<object> {
+    const queryBuilder = this.playlistRepository.createQueryBuilder('playlist');
+    const result = await queryBuilder
+      .select('playlist.artistName', 'artistName')
+      .addSelect('COUNT(*)', 'playCount')
+      .groupBy('playlist.artistName')
+      .orderBy('playCount', 'DESC')
+      .getRawMany();
+    return result
+  }
+
+  // 최근에 들은 곡
+  async lastSongs(): Promise<object> {
+    return await this.playlistRepository.find({ order: { songId: 'DESC' } })
+  }
+}
 

@@ -8,6 +8,7 @@ import { PlaylistDto } from './dto/playlist.dto';
 import { UserService } from '../user/user.service';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { HttpStatus } from '@nestjs/common';
+import { CommandDto } from './dto/command.dto';
 
 @Injectable()
 export class PlaylistService {
@@ -28,15 +29,15 @@ export class PlaylistService {
     const headers = {
       Authorization: 'Bearer ' + user.accessToken
     }
-    this.AxiosErrorInterceptor();
+
+    this.AxiosErrorInterceptor(userId);
 
     try {
       const response = await axios.get(url, { headers });
       const data = response.data.item;
       let artists = Object.values(data.artists);
       const artistName = artists.map(artist => artist['name']).join(', ');
-
-      const device = await this.getDeviceId(user.accessToken);
+      const device = await this.getDeviceId(user.accessToken, userId);
 
       const progress_ms = parseInt(response.data.progress_ms);
       const duration_ms = parseInt(data.duration_ms);
@@ -77,7 +78,7 @@ export class PlaylistService {
   }
 
   // 디바이스 이름 가져오기
-  async getDeviceId(accessToken: string): Promise<string> {
+  async getDeviceId(accessToken: string, userId: string): Promise<string> {
     let authOptions = {
       url: 'https://api.spotify.com/v1/me/player/devices',
       headers: {
@@ -86,7 +87,7 @@ export class PlaylistService {
       json: true
     };
 
-    this.AxiosErrorInterceptor();
+    this.AxiosErrorInterceptor(userId);
 
     try {
       const response = await axios.get(authOptions.url, { headers: authOptions.headers });
@@ -97,11 +98,11 @@ export class PlaylistService {
   }
 
   // Command 실행하기
-  async executeCommand(commandId: string, userId: string): Promise<string | PlaylistDto> {
-    const user = await this.tokenRepository.findOne({ where: { userId } });
+  async executeCommand(commandDto: CommandDto): Promise<string | PlaylistDto> {
+    const user = await this.tokenRepository.findOne({ where: { userId: commandDto.userId } });
     if (!user) throw new CustomException("사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND);
 
-    const deviceId = await this.getDeviceId(user.accessToken);
+    const deviceId = await this.getDeviceId(user.accessToken, commandDto.userId);
 
     let authOptions = {
       url: '',
@@ -113,12 +114,12 @@ export class PlaylistService {
       }
     };
 
-    switch (commandId) {
+    switch (commandDto.command) {
       case 'play':
         authOptions.url = "https://api.spotify.com/v1/me/player/play";
-        this.AxiosErrorInterceptor();
+        this.AxiosErrorInterceptor(commandDto.userId);
         await axios.put(authOptions.url, authOptions.form, { headers: authOptions.headers });
-        return await this.getPlayingTrack(userId);
+        return await this.getPlayingTrack(commandDto.userId);
       case 'stop':
         authOptions.url = "https://api.spotify.com/v1/me/player/pause";
         await axios.put(authOptions.url, authOptions.form, { headers: authOptions.headers });
@@ -136,20 +137,43 @@ export class PlaylistService {
     }
   }
 
-  async AxiosErrorInterceptor() {
+  async AxiosErrorInterceptor(userId: string) {
     axios.interceptors.response.use(
-      (response) => { return response; },
+      (response) => { return response },
       (error) => {
         if (error.response && error.response.status === 404) {
           throw new CustomException("다른 기기에서 곡이 재생/정지 중입니다.", 404);
         }
         else if (error.response.status === 401) {
+          this.afterTokenExpiration(userId);
           throw new CustomException("다시 로그인해주세요", 401);
         }
         throw error;
       }
     );
   }
+  
+  async afterTokenExpiration(userId: string): Promise<void> {
+    const user = await this.tokenRepository.findOne({where: {userId}})
+
+    // 토큰이 만료 되지 않았다면
+    if(!user.refreshToken_expiration){
+      const updateExpire = {
+        ...user,
+        refreshToken_expiration: true // false -> true
+      }
+      await this.tokenRepository.update(userId, updateExpire);
+    }
+    await this.tokenRepository.delete(userId); // Token Column 삭제
+  }
+
+
+  async setVolumnPersent(volume_percent: string){
+    // https://developer.spotify.com/documentation/web-api/reference/set-volume-for-users-playback 요청보내기
+
+
+  }
+
 
   // 가장 많이 들은 노래순
   async favoriteSongs(): Promise<object> {
@@ -172,5 +196,6 @@ export class PlaylistService {
   async lastSongs(): Promise<object> {
     return await this.playlistRepository.find({ order: { songId: 'DESC' } })
   }
+
 }
 

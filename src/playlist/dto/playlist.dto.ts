@@ -1,3 +1,4 @@
+import { ApiProperty } from "@nestjs/swagger";
 import { Token } from "src/user/entities/token.entity";
 export class PlaylistDto {
     songId: number;

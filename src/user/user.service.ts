@@ -7,6 +7,7 @@ import { MySession } from './interface/session.interface';
 import { MyToken } from '../user/interface/token.interface';
 import { CustomException } from '../common/exception/custom.exception';
 import * as net from 'net';
+import { TokenDto } from './dto/token.dto';
 
 @Injectable()
 export class UserService {
@@ -80,7 +81,7 @@ export class UserService {
   }
 
   // AccessToken 재발급
-  async getReAccessToken(refresh_token: string, userId: string): Promise<string> {
+  async getReAccessToken(tokenDto: TokenDto): Promise<string> {
     var authOptions = {
       url: 'https://accounts.spotify.com/api/token',
       headers: {
@@ -91,7 +92,7 @@ export class UserService {
       },
       form: {
         'grant_type': 'refresh_token',
-        'refresh_token': refresh_token
+        'refresh_token': tokenDto.refreshToken
       },
       json: true
     };
@@ -100,7 +101,8 @@ export class UserService {
 
     try {
       const response = await axios.post(authOptions.url, authOptions.form, { headers: authOptions.headers });
-      const user = await this.tokenRepository.findOne({where: {userId}});
+      const user = await this.tokenRepository.findOne({where: {userId: tokenDto.userId}});
+
       const updateToken = {
         ...user,
         accessToken: response.data.access_token

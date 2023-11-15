@@ -152,26 +152,36 @@ export class PlaylistService {
       }
     );
   }
-  
-  async afterTokenExpiration(userId: string): Promise<void> {
-    const user = await this.tokenRepository.findOne({where: {userId}})
 
-    // 토큰이 만료 되지 않았다면
-    if(!user.refreshToken_expiration){
+  async afterTokenExpiration(userId: string): Promise<void> {
+    const user = await this.tokenRepository.findOne({ where: { userId } });
+
+    if (!user) throw new CustomException('사용자를 찾을 수 없습니다', HttpStatus.NOT_FOUND);
+
+    // 토큰이 만료되지 않았다면
+    if (!user.refreshToken_expiration) {
       const updateExpire = {
         ...user,
-        refreshToken_expiration: true // false -> true
-      }
+        refreshToken_expiration: true, // false -> true
+      };
       await this.tokenRepository.update(userId, updateExpire);
     }
-    await this.tokenRepository.delete(userId); // Token Column 삭제
+
+    await this.playlistRepository.delete({ token: { userId: userId } });
+    await this.tokenRepository.delete(userId);
   }
 
 
-  async setVolumnPersent(volume_percent: string){
-    // https://developer.spotify.com/documentation/web-api/reference/set-volume-for-users-playback 요청보내기
 
+  async setVolumePersent(volume_percent: string) {
+    const url = `https://api.spotify.com/v1/me/player/volume?volume_percent=${volume_percent}`
+    const authOptions = {
+      headers: {
+        Authorization: 'Bearer ' // + user.accessToken
+      }
+    }
 
+    const response = await axios.put(url, authOptions.headers);
   }
 
 

@@ -32,7 +32,7 @@ async function bootstrap() {
       path: '/',
       domain: 'localhost',
       sameSite: 'lax',
-      // maxAge: 3600,
+      maxAge: 3600,
       httpOnly: true,
     }
   }));

@@ -7,9 +7,12 @@ import { TokenRepository } from 'src/user/user.repository';
 import { Playlist } from './entities/playlist.entity';
 import { UserService } from '../user/user.service';
 import { playlistRepository } from './playlist.repository';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Token, Playlist, TokenRepository, playlistRepository])],
+  imports: [
+    HttpModule,
+    TypeOrmModule.forFeature([Token, Playlist, TokenRepository, playlistRepository])],
   controllers: [PlaylistController],
   exports: [PlaylistService],
   providers: [PlaylistService, UserService],

@@ -2,6 +2,7 @@ import { Controller, Get, Param, Post, Body } from '@nestjs/common';
 import { PlaylistService } from './playlist.service';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { CommandDto } from './dto/command.dto';
+import { volumnDto } from './dto/volume.dto';
 
 @Controller("apis")
 export class PlaylistController {
@@ -19,9 +20,17 @@ export class PlaylistController {
     return await this.PlaylistService.executeCommand(commandDto);
   }
 
-  @Get('/volumn/:volume_percent')
-  async setVolumn(@Param('volume_percent') volume_percent: string){
-    return await this.PlaylistService.setVolumePersent(volume_percent);
+  @ApiOperation({summary: '볼륨 조절'})
+  @Post('/volumn')
+  @ApiBody({schema: { properties: {volume_percent: {type: 'number'}, userId: {type: 'string'}}}})
+  async setVolumn(@Body() volumeDto: volumnDto){
+    return await this.PlaylistService.setVolumePersent(volumeDto);
+  }
+
+  @ApiOperation({summary: 'TOP Songs Global'})
+  @Get()
+  async topSongs(): Promise<Object>{
+    return await this.PlaylistService.topSongs();
   }
 
   @ApiOperation({summary: '가장 많이 들은 노래'})

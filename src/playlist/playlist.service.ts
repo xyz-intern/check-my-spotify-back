@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import { HttpService } from '@nestjs/axios'
 import { InjectRepository } from '@nestjs/typeorm';
 import { Token } from '../user/entities/token.entity';
 import { Repository } from 'typeorm';
@@ -9,6 +10,10 @@ import { UserService } from '../user/user.service';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { HttpStatus } from '@nestjs/common';
 import { CommandDto } from './dto/command.dto';
+import { volumnDto } from './dto/volume.dto';
+import { map } from 'rxjs/operators';
+import { ChartEntity } from './entities/chart.entity';
+import { Observable } from 'rxjs';
 
 @Injectable()
 export class PlaylistService {
@@ -17,7 +22,8 @@ export class PlaylistService {
     private playlistRepository: Repository<Playlist>,
     @InjectRepository(Token)
     private tokenRepository: Repository<Token>,
-    private userService: UserService
+    private userService: UserService,
+    private readonly httpService: HttpService
   ) { }
 
   // 현재 듣고 있는 트랙 가져오기
@@ -153,10 +159,10 @@ export class PlaylistService {
     );
   }
 
+
   async afterTokenExpiration(userId: string): Promise<void> {
     const user = await this.tokenRepository.findOne({ where: { userId } });
-
-    if (!user) throw new CustomException('사용자를 찾을 수 없습니다', HttpStatus.NOT_FOUND);
+    if (!user) throw new CustomException("사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND);
 
     // 토큰이 만료되지 않았다면
     if (!user.refreshToken_expiration) {
@@ -171,19 +177,46 @@ export class PlaylistService {
     await this.tokenRepository.delete(userId);
   }
 
+  async topSongs(): Promise<Observable<ChartEntity>> {
+    const url = 'https://charts-spotify-com-service.spotify.com/public/v0/charts';
+    return this.httpService.get(url).pipe(
+      map(response => {
+        const chartEntries = response.data['chartEntryViewResponses'][0]['entries'];
+        return chartEntries.map(entry => ({
+          rank: entry['chartEntryData']['currentRank'],
+          artist: entry['trackMetadata']['artists'].map(artist => artist['name']).join(', '),
+          trackName: entry['trackMetadata']['trackName'],
+        }));
+      }),
+    );
+  }
 
 
-  async setVolumePersent(volume_percent: string) {
-    const url = `https://api.spotify.com/v1/me/player/volume?volume_percent=${volume_percent}`
+
+
+  async setVolumePersent(volumeDto: volumnDto) {
+    const user = await this.tokenRepository.findOne({ where: { userId: volumeDto.userId } });
+    if (!user) throw new CustomException('사용자를 찾을 수 없습니다', HttpStatus.NOT_FOUND);
+
+    const deviceId = await this.getDeviceId(user.accessToken, volumeDto.userId);
+
     const authOptions = {
+      url: `https://api.spotify.com/v1/me/player/volume?volume_percent=${volumeDto.volume_percent}`,
       headers: {
-        Authorization: 'Bearer ' // + user.accessToken
+        Authorization: 'Bearer ' + user.accessToken
+      },
+      form: {
+        device_id: deviceId
       }
     }
 
-    const response = await axios.put(url, authOptions.headers);
+    try {
+      await axios.put(authOptions.url, authOptions.form, { headers: authOptions.headers });
+      return `볼륨이 ${volumeDto.volume_percent}% 입니다`
+    } catch (error) {
+      console.log(error)
+    }
   }
-
 
   // 가장 많이 들은 노래순
   async favoriteSongs(): Promise<object> {

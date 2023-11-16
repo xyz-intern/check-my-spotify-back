@@ -1,12 +1,13 @@
-import { Controller, Get, Param, Post, Req, Res, Session, Body } from '@nestjs/common';
+import { Controller, Get, Post, Req, Res, Session, Body } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { UserService } from './user.service';
 import * as querystring from 'querystring';
 import { MySession } from './interface/session.interface';
-import { ApiBody, ApiOperation } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TokenDto } from './dto/token.dto';
 
 @Controller()
+@ApiTags('User')
 export class UserController {
   userService: UserService;
 

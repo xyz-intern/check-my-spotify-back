@@ -1,15 +1,17 @@
 import { Controller, Get, Param, Post, Body } from '@nestjs/common';
 import { PlaylistService } from './playlist.service';
-import { ApiBody, ApiOperation } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CommandDto } from './dto/command.dto';
-import { volumnDto } from './dto/volume.dto';
+import { VolumnDto } from './dto/volume.dto';
 
 @Controller("apis")
+@ApiTags('Playlist')
 export class PlaylistController {
   constructor(private readonly PlaylistService: PlaylistService) { }
   @ApiOperation({summary: '현재 트랙 정보 가져오기'})
   @Get('/getTrack/:user_id')
   async getTrack(@Param('user_id') user_id: string): Promise<Object> {
+    console.log("ddxddf" , user_id);
     return await this.PlaylistService.getPlayingTrack(user_id);
   }
 
@@ -17,37 +19,15 @@ export class PlaylistController {
   @ApiBody({schema: { properties: {command: {type: 'string'}, userId: {type: 'string'}}}})
   @Post('/command')
   async command(@Body() commandDto: CommandDto): Promise<object | string> {
+    console.log(commandDto);
     return await this.PlaylistService.executeCommand(commandDto);
   }
 
   @ApiOperation({summary: '볼륨 조절'})
-  @Post('/volumn')
-  @ApiBody({schema: { properties: {volume_percent: {type: 'number'}, userId: {type: 'string'}}}})
-  async setVolumn(@Body() volumeDto: volumnDto){
-    return await this.PlaylistService.setVolumePersent(volumeDto);
-  }
-
-  @ApiOperation({summary: 'TOP Songs Global'})
-  @Get()
-  async topSongs(): Promise<Object>{
-    return await this.PlaylistService.topSongs();
-  }
-
-  @ApiOperation({summary: '가장 많이 들은 노래'})
-  @Get('/favorite/song')
-  async favoriteSongs(): Promise<object> {
-    return await this.PlaylistService.favoriteSongs();
-  }
-
-  @ApiOperation({summary: '가장 많이 들은 아티스트'})
-  @Get('/heard/artists')
-  async lovitArtists(): Promise<object> {
-    return await this.PlaylistService.heardALotArtists();
-  }
-
-  @ApiOperation({summary: '최근에 들은 곡'})
-  @Get('/last/song')
-  async lastSongs(): Promise<object> {
-    return await this.PlaylistService.lastSongs();
+  @Post('/volume')
+  @ApiBody({schema: { properties: {volume: {type: 'boolean'}, userId: {type: 'string'}}}})
+  async setVolumn(@Body() volumnDto: VolumnDto){
+    console.log(volumnDto)
+    return await this.PlaylistService.setVolumePersent(volumnDto);
   }
 }

@@ -1,4 +1,4 @@
-export class volumnDto{
+export class VolumnDto{
     userId: string;
-    volume_percent: number;
+    volume: number;
 }

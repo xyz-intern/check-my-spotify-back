@@ -12,6 +12,7 @@ import { HttpStatus } from '@nestjs/common';
 import { CommandDto } from './dto/command.dto';
 import { VolumnDto } from './dto/volume.dto';
 import * as PLAYLIST from '../common/constants/spotify.url';
+import * as net from 'net';
 
 @Injectable()
 export class PlaylistService {
@@ -21,7 +22,6 @@ export class PlaylistService {
     @InjectRepository(Token)
     private tokenRepository: Repository<Token>,
     private userService: UserService,
-    private readonly httpService: HttpService
   ) { }
 
   // 현재 듣고 있는 트랙 가져오기
@@ -43,9 +43,9 @@ export class PlaylistService {
       const artistName = artists.map(artist => artist['name']).join(', ');
       const device = await this.getDeviceId(user.accessToken, userId);
 
-      const progress_ms = parseInt(response.data.progress_ms);
-      const duration_ms = parseInt(data.duration_ms);
-      const current_ms = String(duration_ms - progress_ms);
+      const progress_ms = parseInt(response.data.progress_ms); // 현재까지 들은 시간
+      const duration_ms = parseInt(data.duration_ms);   // 전체시간
+      const current_ms = String(duration_ms - progress_ms); // 남은 시간 
 
       // 같은 곡 재생
       const duplication = await this.playlistRepository.findOne({
@@ -59,7 +59,7 @@ export class PlaylistService {
         }
 
         await this.playlistRepository.update(updateInfo.songId, updateInfo);
-        await this.userService.sendSocketData(current_ms);
+        await this.sendSocketData(String(current_ms), String(duration_ms));
         return duplication.songName + "|" + duplication.artistName;
       }
       else {
@@ -70,16 +70,42 @@ export class PlaylistService {
         saveTrackData.songName = data.name;
         saveTrackData.count = 1;
         saveTrackData.deviceId = device;
-        saveTrackData.imageUri = data.album.images.find((image) => image.height === 640).url;
+        saveTrackData.albumImage= data.album.images.find((image) => image.height === 640).url;
+        saveTrackData.artistImage = data.artists[0].id;
 
         await this.playlistRepository.save(saveTrackData);
-        await this.userService.sendSocketData(current_ms);
+        await this.sendSocketData(current_ms, String(duration_ms));
         return saveTrackData.songName + "|" + saveTrackData.artistName;
       }
     }
     catch (error) {
       console.log(error)
     }
+  }
+
+  // Python Script와 WebSocket 통신
+  async sendSocketData(current: string, progress: string) {
+    const client = new net.Socket;
+    const time = current + "|" + progress;
+    client.connect(+process.env.SERVER_PORT, process.env.SERVER_IP, function () {
+      console.log("Connected to the server");
+      client.write(time);
+    })
+    client.on('data', function (data) {
+      console.log("Received from the server data : " + data)
+    })
+
+    client.on('close', function () {
+      console.log('Connection closed')
+    })
+
+    client.on('error', (err) => {
+      if (err.message.includes('ECONNREFUSED')) {
+        console.log('Connection refused to the server. Please check your server status or IP address.');
+      } else {
+        console.log('An unexpected error occurred:', err.message);
+      }
+    });
   }
 
   // 디바이스 이름 가져오기
@@ -123,10 +149,10 @@ export class PlaylistService {
         return "음악이 정지되었습니다.";
       case 'next':
         await axios.post(PLAYLIST.URL.PLAYLIST_SET_NEXT, authOptions.form, { headers: authOptions.headers });
-        return "다음곡으로 전환하였습니다.";
+        return "다음곡으로 | 전환하였습니다.";
       case 'prev':
         axios.post(PLAYLIST.URL.PLAYLIST_SET_PRE, authOptions.form, { headers: authOptions.headers });
-        return "이전곡으로 전환하였습니다.";
+        return "이전곡으로 | 전환하였습니다.";
       default:
         throw new CustomException("잘못된 명령어입니다.", HttpStatus.BAD_REQUEST);
     }
@@ -177,11 +203,10 @@ export class PlaylistService {
     let volume_percent = await this.getPlaybackState(user);
     const deviceId = await this.getDeviceId(user.accessToken, volumeDto.userId);
 
-    
-    if(volume_percent === 100) return "It's already the maximum volume."
+    if(volumeDto.volume && volume_percent === 100) return "It's already the maximum volume."
     else if (volumeDto.volume) volume_percent += 5;
-    else if(volume_percent === 0) return "Volume is 0%"
-    else if(!volumeDto.volume) volume_percent -= 5
+    else if(volume_percent === 0 && !volumeDto.volume) return "Volume is 0%"
+    else if(!volumeDto.volume) volume_percent -= 5;
 
     const authOptions = {
       headers: {
@@ -195,7 +220,7 @@ export class PlaylistService {
 
     try {
       await axios.put(PLAYLIST.URL.SET_PLAYBACK_VOLUME+volume_percent, authOptions.form, { headers: authOptions.headers });
-      return `볼륨이 ${volume_percent}% 입니다`
+      return `Volumn is ${volume_percent}%.`
     } catch (error) {
       console.log(error)
     }

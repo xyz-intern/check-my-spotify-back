@@ -10,4 +10,5 @@ export const URL = {
     GET_PLAYBACK_STATE: 'https://api.spotify.com/v1/me/player',
     GET_TOKEN: 'https://accounts.spotify.com/api/token',
     GET_USER_PROFILE: 'https://api.spotify.com/v1/me',
+    GET_ARTIST_IMAGE: 'https://api.spotify.com/v1/artists/'
 }

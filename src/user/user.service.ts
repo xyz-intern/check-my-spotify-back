@@ -60,6 +60,7 @@ export class UserService {
     }
   }
 
+
   // 로그인 시 유저 정보 가져오기
   async getUserProfile(accessToken: string): Promise<string> {
     const authOptions = {

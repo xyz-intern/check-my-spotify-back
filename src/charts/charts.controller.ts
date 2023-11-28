@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { ChartsService } from './charts.service';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
@@ -11,6 +11,12 @@ export class ChartsController {
   @Get('/top/songs')
   async topSongs(): Promise<Object>{
     return await this.chartsService.topSongs();
+  }
+
+  @ApiOperation({summary: 'TOP 아티스트'})
+  @Get('/top/artist')
+  async topArtists(): Promise<object> {
+    return await this.chartsService.topArtists();
   }
 
   @ApiOperation({summary: '가장 많이 들은 노래'})
@@ -31,9 +37,4 @@ export class ChartsController {
     return await this.chartsService.lastSongs();
   }
 
-  @ApiOperation({summary: 'TOP 아티스트'})
-  @Get('/top/artist')
-  async topArtists(): Promise<object> {
-    return await this.chartsService.topArtists();
-  }
 }

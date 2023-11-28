@@ -18,7 +18,7 @@ export class Playlist {
 
     @Column()
     @ApiProperty()
-    imageUri: string;
+    albumImage: string;
 
     @Column()
     @ApiProperty()
@@ -31,6 +31,10 @@ export class Playlist {
     @Column()
     @ApiProperty()
     count: number;
+
+    @Column()
+    @ApiProperty()
+    artistImage: string;
 
     @ManyToOne(type => Token, token => token.playlist, {nullable: false})
     @JoinColumn({ name: "userId" })

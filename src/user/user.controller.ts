@@ -18,12 +18,14 @@ export class UserController {
   @ApiOperation({summary: '토큰 발급'})
   @Get('/callback')
   async callback(@Req() req: Request, @Res() res: Response, @Session() session: MySession): Promise<any> {
+    console.log("들어옴")
     const state = req.query.state || null;
     const code = req.query.code || null;
 
     if (!state) return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
     const token = await this.userService.getAuthorizationCode(code, session);
 
+    console.log("token", token);
     if (token) {
       res.cookie('refreshToken', token.refreshToken, {
         path: '/',
@@ -44,7 +46,6 @@ export class UserController {
     return res.send({
       "message": "쿠키가 생성되었습니다."
     })
-
   }
 
   @ApiOperation({summary: '액세스 토큰 재발급'})

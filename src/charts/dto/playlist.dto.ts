@@ -4,9 +4,10 @@ export class PlaylistDto {
     songId: number;
     artistName: string;
     songName: string;
-    imageUri: string;
+    albumImage: string;
     albumName: string;
     deviceId: string;
+    artistImage: string;
     count: number;
     token: Token;
 }

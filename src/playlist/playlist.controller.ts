@@ -11,7 +11,7 @@ export class PlaylistController {
   @ApiOperation({summary: '현재 트랙 정보 가져오기'})
   @Get('/getTrack/:user_id')
   async getTrack(@Param('user_id') user_id: string): Promise<Object> {
-    console.log("ddxddf" , user_id);
+    console.log("user_id", user_id)
     return await this.PlaylistService.getPlayingTrack(user_id);
   }
 
@@ -19,7 +19,7 @@ export class PlaylistController {
   @ApiBody({schema: { properties: {command: {type: 'string'}, userId: {type: 'string'}}}})
   @Post('/command')
   async command(@Body() commandDto: CommandDto): Promise<object | string> {
-    console.log(commandDto);
+    console.log(commandDto, commandDto)
     return await this.PlaylistService.executeCommand(commandDto);
   }
 

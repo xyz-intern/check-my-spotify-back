@@ -166,7 +166,7 @@ export class PlaylistService {
         if (error.response && error.response.status === 404) {
           throw new CustomException("다른 기기에서 곡이 재생/정지 중입니다.", 404);
         } else if (error.response.status === 401) {
-          this.afterTokenExpiration(userId);
+          // this.afterTokenExpiration(userId);
           throw new CustomException("다시 로그인해주세요", 401);
         } else if (error.response.status === 204) {
           throw new CustomException("NO CONTENT", 204)

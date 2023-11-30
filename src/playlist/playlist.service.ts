@@ -13,6 +13,7 @@ import { CommandDto } from './dto/command.dto';
 import { VolumnDto } from './dto/volume.dto';
 import * as PLAYLIST from '../common/constants/spotify.url';
 import * as net from 'net';
+import { PARAMTYPES_METADATA } from '@nestjs/common/constants';
 
 @Injectable()
 export class PlaylistService {
@@ -38,7 +39,6 @@ export class PlaylistService {
     try {
       const response = await axios.get(PLAYLIST.URL.GET_CURRENT_PLAYING, { headers });
       const data = response.data.item;
-
       let artists = Object.values(data.artists);
       const artistName = artists.map(artist => artist['name']).join(', ');
       const device = await this.getDeviceId(user.accessToken, userId);
@@ -70,16 +70,17 @@ export class PlaylistService {
         saveTrackData.songName = data.name;
         saveTrackData.count = 1;
         saveTrackData.deviceId = device;
-        saveTrackData.albumImage= data.album.images.find((image) => image.height === 640).url;
+        saveTrackData.albumImage = data.album.images.find((image) => image.height === 640).url;
         saveTrackData.artistImage = data.artists[0].id;
 
         await this.playlistRepository.save(saveTrackData);
         await this.sendSocketData(current_ms, String(duration_ms));
+        // console.log(saveTrackData.songName + "|" + saveTrackData.artistName);
         return saveTrackData.songName + "|" + saveTrackData.artistName;
       }
     }
     catch (error) {
-      console.log(error)
+      console.log('error', error);
     }
   }
 
@@ -130,6 +131,7 @@ export class PlaylistService {
     if (!user) throw new CustomException("사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND);
 
     const deviceId = await this.getDeviceId(user.accessToken, commandDto.userId);
+
     let authOptions = {
       form: {
         'device_id': deviceId
@@ -139,11 +141,12 @@ export class PlaylistService {
       }
     };
 
+
+    this.AxiosErrorInterceptor(commandDto.userId);
+
     switch (commandDto.command) {
       case 'play':
-        this.AxiosErrorInterceptor(commandDto.userId);
-        await axios.put(PLAYLIST.URL.PLAYLIST_SET_PLAY, authOptions.form, { headers: authOptions.headers });
-        return await this.getPlayingTrack(commandDto.userId);
+        return await this.transferUserPlayback(user, deviceId);
       case 'stop':
         await axios.put(PLAYLIST.URL.PLAYLIST_SET_STOP, authOptions.form, { headers: authOptions.headers });
         return "음악이 정지되었습니다.";
@@ -166,7 +169,7 @@ export class PlaylistService {
         if (error.response && error.response.status === 404) {
           throw new CustomException("다른 기기에서 곡이 재생/정지 중입니다.", 404);
         } else if (error.response.status === 401) {
-          // this.afterTokenExpiration(userId);
+          this.afterTokenExpiration(userId);
           throw new CustomException("다시 로그인해주세요", 401);
         } else if (error.response.status === 204) {
           throw new CustomException("NO CONTENT", 204)
@@ -178,7 +181,7 @@ export class PlaylistService {
 
 
   // 토큰 만료 시
-  async afterTokenExpiration(userId: string): Promise<void> {
+  async afterTokenExpiration(userId: string): Promise<string> {
     const user: Token = await this.tokenRepository.findOne({ where: { userId } });
     if (!user) throw new CustomException("사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND);
 
@@ -190,23 +193,23 @@ export class PlaylistService {
       await this.tokenRepository.update(userId, updateExpire);
     }
 
-    // playlist, token Column 삭제
     await this.playlistRepository.delete({ token: { userId: userId } });
     await this.tokenRepository.delete(userId);
+    return "로그아웃이 완료되었습니다."
   }
 
   // 볼륨 조정하기
-  async setVolumePersent(volumeDto: VolumnDto) : Promise<string>{
+  async setVolumePersent(volumeDto: VolumnDto): Promise<string> {
     const user: Token = await this.tokenRepository.findOne({ where: { userId: volumeDto.userId } });
     if (!user) throw new CustomException('사용자를 찾을 수 없습니다', HttpStatus.NOT_FOUND);
 
     let volume_percent = await this.getPlaybackState(user);
     const deviceId = await this.getDeviceId(user.accessToken, volumeDto.userId);
 
-    if(volumeDto.volume && volume_percent === 100) return "It's already the maximum volume."
+    if (volumeDto.volume && volume_percent === 100) return "It's already the maximum volume."
     else if (volumeDto.volume) volume_percent += 5;
-    else if(volume_percent === 0 && !volumeDto.volume) return "Volume is 0%"
-    else if(!volumeDto.volume) volume_percent -= 5;
+    else if (volume_percent === 0 && !volumeDto.volume) return "Volume is 0%"
+    else if (!volumeDto.volume) volume_percent -= 5;
 
     const authOptions = {
       headers: {
@@ -219,7 +222,7 @@ export class PlaylistService {
     this.AxiosErrorInterceptor(user.userId)
 
     try {
-      await axios.put(PLAYLIST.URL.SET_PLAYBACK_VOLUME+volume_percent, authOptions.form, { headers: authOptions.headers });
+      await axios.put(PLAYLIST.URL.SET_PLAYBACK_VOLUME + volume_percent, authOptions.form, { headers: authOptions.headers });
       return `Volumn is ${volume_percent}%.`
     } catch (error) {
       console.log(error)
@@ -240,7 +243,28 @@ export class PlaylistService {
     } catch (error) {
       console.log(error);
     }
+  }
 
+  async transferUserPlayback(user: Token, deviceId: string): Promise<string | PlaylistDto> {
+    const req = {
+      headers: {
+        "Authorization": "Bearer " + user.accessToken,
+        "Content-Type": "application/json"
+      },
+      data: {
+        device_ids: [`${deviceId}`],
+        play: true
+      }
+    }
+    
+    try {
+      await axios.put(`https://api.spotify.com/v1/me/player`, req.data, { headers: req.headers })
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return await this.getPlayingTrack(user.userId);
+    } catch (error) {
+      console.log(error)
+    }
+    
   }
 }
 

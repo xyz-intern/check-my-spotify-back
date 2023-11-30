@@ -1,17 +1,20 @@
-import { Controller, Get, Post, Req, Res, Session, Body } from '@nestjs/common';
+import { Controller, Get, Post, Req, Res, Session, Body, Param, Delete } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { UserService } from './user.service';
 import * as querystring from 'querystring';
 import { MySession } from './interface/session.interface';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TokenDto } from './dto/token.dto';
+import { PlaylistService } from 'src/playlist/playlist.service';
 
 @Controller()
 @ApiTags('User')
 export class UserController {
   userService: UserService;
+  playlistService: PlaylistService
 
-  constructor(userService: UserService) {
+  constructor(userService: UserService, playlistService: PlaylistService) {
+    this.playlistService = playlistService
     this.userService = userService;
   }
 
@@ -54,6 +57,13 @@ export class UserController {
   async getReAccessToken(@Body() tokenDto: TokenDto): Promise<string> {
     console.log('tokenDto', tokenDto);
     return await this.userService.getReAccessToken(tokenDto);
+  }
+
+
+  @ApiOperation({summary: '사용자 로그아웃'})
+  @Delete('/logout/:userId')
+  async logout(@Param("userId") userId: string): Promise<string>{
+    return await this.playlistService.afterTokenExpiration(userId);
   }
 }
 

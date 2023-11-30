@@ -114,6 +114,7 @@ export class UserService {
     }
   }
 
+
   // Python Script와 WebSocket 통신
   async sendSocketData(data: string) {
     const client = new net.Socket;
@@ -138,6 +139,7 @@ export class UserService {
       }
     });
   }
+
 
   // Exception Handler
   async AxiosErrorinterceptor() {

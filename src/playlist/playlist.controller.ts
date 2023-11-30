@@ -12,14 +12,16 @@ export class PlaylistController {
   @Get('/getTrack/:user_id')
   async getTrack(@Param('user_id') user_id: string): Promise<Object> {
     console.log("user_id", user_id)
-    return await this.PlaylistService.getPlayingTrack(user_id);
+    const play =  await this.PlaylistService.getPlayingTrack(user_id);
+    console.log(play)
+    return play;
   }
 
   @ApiOperation({summary: '노래 재생/멈춤/다음/이전'})
   @ApiBody({schema: { properties: {command: {type: 'string'}, userId: {type: 'string'}}}})
   @Post('/command')
   async command(@Body() commandDto: CommandDto): Promise<object | string> {
-    console.log(commandDto, commandDto)
+    console.log(commandDto)
     return await this.PlaylistService.executeCommand(commandDto);
   }
 

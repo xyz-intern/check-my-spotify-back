@@ -8,7 +8,6 @@ import { ChartEntity } from './entities/chart.entity';
 import { ArtistEntity } from './entities/artist.entity';
 import axios from 'axios'
 import { Token } from 'src/user/entities/token.entity';
-import { query } from 'express';
 import { CustomException } from 'src/common/exception/custom.exception';
 import * as CHART from '../common/constants/spotify.url'
 @Injectable()
@@ -39,6 +38,7 @@ export class ChartsService {
     
     const result = await query.getRawMany();
   
+    // this.AxiosErrorInterceptor(userId)
     const dataResult = await Promise.all(result.map(async (row) => {
       const user: Token = await this.tokenRepository.findOne({ where: { userId: row.userId } });
       if (!user) throw new CustomException('사용자를 찾을 수 없습니다', HttpStatus.NOT_FOUND);
@@ -59,7 +59,7 @@ export class ChartsService {
         songId: Math.random(),
       };
     }));
-    
+
     return dataResult;
   }
   
@@ -93,4 +93,6 @@ export class ChartsService {
       imageUri: entry['artistMetadata']['displayImageUri']
     }));
   }
+
+
 }

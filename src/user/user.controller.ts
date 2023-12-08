@@ -2,7 +2,6 @@ import { Controller, Get, Post, Req, Res, Session, Body, Param, Delete } from '@
 import { Request, Response } from 'express';
 import { UserService } from './user.service';
 import * as querystring from 'querystring';
-import { MySession } from './interface/session.interface';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TokenDto } from './dto/token.dto';
 import { PlaylistService } from 'src/playlist/playlist.service';
@@ -11,7 +10,7 @@ import { PlaylistService } from 'src/playlist/playlist.service';
 @ApiTags('User')
 export class UserController {
   userService: UserService;
-  playlistService: PlaylistService
+  playlistService: PlaylistService;
 
   constructor(userService: UserService, playlistService: PlaylistService) {
     this.playlistService = playlistService
@@ -20,15 +19,14 @@ export class UserController {
 
   @ApiOperation({summary: '토큰 발급'})
   @Get('/callback')
-  async callback(@Req() req: Request, @Res() res: Response, @Session() session: MySession): Promise<any> {
-    console.log("들어옴")
+  async callback(@Req() req: Request, @Res() res: Response): Promise<any> {
     const state = req.query.state || null;
     const code = req.query.code || null;
 
     if (!state) return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
-    const token = await this.userService.getAuthorizationCode(code, session);
+    const token = await this.userService.getAuthorizationCode(code);
 
-    console.log("token", token);
+    
     if (token) {
       res.cookie('refreshToken', token.refreshToken, {
         path: '/',
@@ -55,7 +53,6 @@ export class UserController {
   @Post("/reissue")
   @ApiBody({schema: { properties: {userId: {type: 'string'}, refreshToken: {type: 'string'}}}})
   async getReAccessToken(@Body() tokenDto: TokenDto): Promise<string> {
-    console.log('tokenDto', tokenDto);
     return await this.userService.getReAccessToken(tokenDto);
   }
 

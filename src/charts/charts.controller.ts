@@ -36,5 +36,4 @@ export class ChartsController {
   async lastSongs(): Promise<object> {
     return await this.chartsService.lastSongs();
   }
-
 }

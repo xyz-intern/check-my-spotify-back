@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { ConfigModule } from '@nestjs/config'
@@ -10,6 +10,8 @@ import { Playlist } from '../playlist/entities/playlist.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventsModule } from 'src/socket/event.module';
 import { ChartsModule } from 'src/charts/charts.module';
+import { SessionModule } from 'nestjs-session';
+import {axiosErrorMiddleware} from '../common/exception/axiosErrorMiddleware'
 
 @Module({
   imports: [PlaylistModule,
@@ -18,6 +20,14 @@ import { ChartsModule } from 'src/charts/charts.module';
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true
+    }),
+
+    SessionModule.forRoot({
+      session: {
+        secret: '12gk34',
+        resave: false,
+        saveUninitialized: false
+      }
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
@@ -37,4 +47,15 @@ import { ChartsModule } from 'src/charts/charts.module';
   providers: [UserService],
   exports: [UserService]
 })
-export class UserModule { }
+export class UserModule {}
+
+// implements NestModule {
+//   configure(consumer: MiddlewareConsumer) {
+//     consumer
+//       .apply(axiosErrorMiddleware)
+//       .forRoutes('*');
+//   }
+// }
+
+
+

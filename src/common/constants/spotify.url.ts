@@ -11,5 +11,6 @@ export const URL = {
     GET_PLAYBACK_STATE: `${BASE_URL}me/player`,
     GET_TOKEN: `https://accounts.spotify.com/api/token`,
     GET_USER_PROFILE: `${BASE_URL}me`,
-    GET_ARTIST_IMAGE: `${BASE_URL}artists/`
+    GET_ARTIST_IMAGE: `${BASE_URL}artists/`,
+    TRANSFER_PLAYBACK: `${BASE_URL}me/player`,
 }

@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Token } from './entities/token.entity';
 import { Repository } from 'typeorm';
 import axios from 'axios';
-import { MySession } from './interface/session.interface';
 import { MyToken } from '../user/interface/token.interface';
 import { CustomException } from '../common/exception/custom.exception';
 import * as net from 'net';
@@ -18,7 +17,8 @@ export class UserService {
   ) { }
 
   // AccessToken & RefreshToken 요청하기
-  async getAuthorizationCode(code: Object, session: MySession): Promise<MyToken> {
+  async getAuthorizationCode(code: Object): Promise<MyToken> {
+    try {
     let authOptions = {
       form: {
         'code': code, // Front에서 받은 인가코드
@@ -34,18 +34,13 @@ export class UserService {
       json: true
     };
 
-    this.AxiosErrorinterceptor();
-
-    try {
       const response = await axios.post(SPOTIFY.URL.GET_TOKEN, authOptions.form, { headers: authOptions.headers });
       const data = response.data;
       const access_token = response.data.access_token.replace(/"/g, '');
       const refresh_token = response.data.refresh_token.replace(/"/g, '');
       const userName = await this.getUserProfile(access_token);
 
-      session.userName = userName;
-
-      if (data) this.sendSocketData(session.userName);
+      if (data) this.sendSocketData(userName);
 
       const token = this.tokenRepository.create({
         userId: userName,
@@ -56,13 +51,13 @@ export class UserService {
       await this.tokenRepository.save(token);
       return token;
     } catch (error) {
-      console.log(error);
+      console.log(error)
     }
   }
 
-
   // 로그인 시 유저 정보 가져오기
   async getUserProfile(accessToken: string): Promise<string> {
+    try{
     const authOptions = {
       headers: {
         'Authorization': `Bearer ${accessToken}`
@@ -70,13 +65,10 @@ export class UserService {
       json: true
     };
 
-    this.AxiosErrorinterceptor();
-
-    try {
       const response = await axios.get(SPOTIFY.URL.GET_USER_PROFILE, { headers: authOptions.headers });
       return JSON.stringify(response.data.display_name).replace(/"/g, '');
     } catch (error) {
-      console.log(error);
+      console.log(error)
     }
   }
 
@@ -96,8 +88,6 @@ export class UserService {
       json: true
     };
 
-    this.AxiosErrorinterceptor();
-
     try {
       const response = await axios.post(SPOTIFY.URL.GET_TOKEN, authOptions.form, { headers: authOptions.headers });
       const user = await this.tokenRepository.findOne({where: {userId: tokenDto.userId}});
@@ -110,7 +100,7 @@ export class UserService {
       const sucess = await this.tokenRepository.update(user.userId, updateToken)
       if (sucess) return "액세스 토큰이 재발급 되었습니다.";
     } catch (error) {
-      console.error(error);
+      console.log(error)
     }
   }
 
@@ -138,19 +128,5 @@ export class UserService {
         console.log('An unexpected error occurred:', err.message);
       }
     });
-  }
-
-
-  // Exception Handler
-  async AxiosErrorinterceptor() {
-    axios.interceptors.response.use(
-      (response) => { return response; },
-      (error) => {
-        if (error.response && error.response.status === 400) {
-          throw new CustomException("잘못된 요청입니다", 400);
-        }
-        throw error;
-      }
-    );
   }
 }

@@ -4,6 +4,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { WsAdapter } from '@nestjs/platform-ws';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
+import { SessionOptions } from 'express-session';
+import { axiosErrorMiddleware } from './common/exception/axiosErrorMiddleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(UserModule);
@@ -23,7 +25,7 @@ async function bootstrap() {
 
   // Session 설정
   app.use(session({
-    secret: 'your-secret-key',
+    secret: 'e12o45',
     resave: false,
     saveUninitialized: false,
 
@@ -35,8 +37,16 @@ async function bootstrap() {
       httpOnly: true,
     }
   }));
-  
-  app.enableCors();
+
+  app.enableCors({
+    origin: ['http://localhost:8080'],
+    credentials: true,
+  }
+  );
+
+  const userService = require('./playlist/playlist.service'); // userService 파일 경로에 맞게 수정
+
+app.use(axiosErrorMiddleware(userService));
   await app.listen(3000);
 }
 bootstrap();

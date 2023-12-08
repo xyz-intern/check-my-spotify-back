@@ -10,18 +10,14 @@ export class PlaylistController {
   constructor(private readonly PlaylistService: PlaylistService) { }
   @ApiOperation({summary: '현재 트랙 정보 가져오기'})
   @Get('/getTrack/:user_id')
-  async getTrack(@Param('user_id') user_id: string): Promise<Object> {
-    console.log("user_id", user_id)
-    const play =  await this.PlaylistService.getPlayingTrack(user_id);
-    console.log(play)
-    return play;
+  async getTrack(@Param('user_id') user_id: string): Promise<string | number> {
+    return await this.PlaylistService.getPlayingTrack(user_id);
   }
 
   @ApiOperation({summary: '노래 재생/멈춤/다음/이전'})
   @ApiBody({schema: { properties: {command: {type: 'string'}, userId: {type: 'string'}}}})
   @Post('/command')
-  async command(@Body() commandDto: CommandDto): Promise<object | string> {
-    console.log(commandDto)
+  async command(@Body() commandDto: CommandDto): Promise<string > { 
     return await this.PlaylistService.executeCommand(commandDto);
   }
 
@@ -29,7 +25,6 @@ export class PlaylistController {
   @Post('/volume')
   @ApiBody({schema: { properties: {volume: {type: 'boolean'}, userId: {type: 'string'}}}})
   async setVolumn(@Body() volumnDto: VolumnDto){
-    console.log(volumnDto)
     return await this.PlaylistService.setVolumePersent(volumnDto);
   }
 }

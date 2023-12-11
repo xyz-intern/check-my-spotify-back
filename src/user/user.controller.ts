@@ -26,7 +26,6 @@ export class UserController {
     if (!state) return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
     const token = await this.userService.getAuthorizationCode(code);
 
-    
     if (token) {
       res.cookie('refreshToken', token.refreshToken, {
         path: '/',

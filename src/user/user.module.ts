@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { ConfigModule } from '@nestjs/config'
@@ -11,7 +11,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { EventsModule } from 'src/socket/event.module';
 import { ChartsModule } from 'src/charts/charts.module';
 import { SessionModule } from 'nestjs-session';
-import {axiosErrorMiddleware} from '../common/exception/axiosErrorMiddleware'
+import { PlaylistService } from 'src/playlist/playlist.service';
+import { PlaylistRepository } from 'src/playlist/playlist.repository';
 
 @Module({
   imports: [PlaylistModule,
@@ -41,21 +42,12 @@ import {axiosErrorMiddleware} from '../common/exception/axiosErrorMiddleware'
       autoLoadEntities: true
     }),
     TypeOrmModule.forFeature([Token, TokenRepository]),
-
   ],
   controllers: [UserController],
   providers: [UserService],
   exports: [UserService]
 })
 export class UserModule {}
-
-// implements NestModule {
-//   configure(consumer: MiddlewareConsumer) {
-//     consumer
-//       .apply(axiosErrorMiddleware)
-//       .forRoutes('*');
-//   }
-// }
 
 
 

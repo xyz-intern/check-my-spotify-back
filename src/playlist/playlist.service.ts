@@ -1,95 +1,92 @@
-import { Header, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import { HttpService } from '@nestjs/axios'
 import { InjectRepository } from '@nestjs/typeorm';
 import { Token } from '../user/entities/token.entity';
-import { Repository } from 'typeorm';
-import { Playlist } from './entities/playlist.entity';
 import { PlaylistDto } from '../charts/dto/playlist.dto';
-import { UserService } from '../user/user.service';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { HttpStatus } from '@nestjs/common';
 import { CommandDto } from './dto/command.dto';
 import { VolumnDto } from './dto/volume.dto';
 import * as PLAYLIST from '../common/constants/spotify.url';
-import * as net from 'net';
-
-
+import * as REQUEST from '../common/constants/request.option'
+import { Playlist } from './entities/playlist.entity';
+import { Repository } from 'typeorm';
+import { UserService } from 'src/user/user.service';
+import { Music } from './dto/music.dto';
 @Injectable()
 export class PlaylistService {
-  constructor(
-    @InjectRepository(Playlist)
-    private playlistRepository: Repository<Playlist>,
-    @InjectRepository(Token)
-    private tokenRepository: Repository<Token>,
-    private userService: UserService,
-  ) { }
+constructor(
+  @InjectRepository(Playlist)
+  private playlistRepository: Repository<Playlist>,
+  @InjectRepository(Token)
+  private tokenRepository: Repository<Token>,
+  private userService: UserService
+) { }
 
   // 현재 듣고 있는 트랙 가져오기
   async getPlayingTrack(userId: string): Promise<string> {
     try {
-      const user: Token = await this.tokenRepository.findOne({ where: { userId } });
-      console.log('user', user)
-      if (!user) {
-        console.log("여기야")
-        throw new CustomException("사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND);
-      }
-      let type = 'track'
-      const authOptions = await this.setRequestOptions(type, user)
+      const user: Token = await this.getUserToken(userId)
+      const authOptions = await this.setRequestOptions(REQUEST.OPTIONS.TRACK, user)
 
       const response = await axios.get(PLAYLIST.URL.GET_CURRENT_PLAYING, { headers: authOptions.headers });
       const data = response.data.item;
       let artists = Object.values(data.artists);
       const artistName = artists.map(artist => artist['name']).join(', ');
+
+      const volume = await this.getPlaybackState(user);
       const device = await this.getDeviceId(user);
 
       const progress_ms = parseInt(response.data.progress_ms); // 현재까지 들은 시간
       const duration_ms = parseInt(data.duration_ms);   // 전체시간
       const current_ms = String(duration_ms - progress_ms); // 남은 시간 
 
-      let volume;
-
       // 같은 곡 재생
       const duplication = await this.playlistRepository.findOne({
         where: { songName: data.name, artistName: artistName }
       })
 
-      if (duplication) {
-        const updateInfo = {
-          ...duplication,
-          count: duplication.count + 1
-        }
-
-        await this.playlistRepository.update(updateInfo.songId, updateInfo);
-        await this.sendSocketData(String(current_ms), String(duration_ms));
-        volume = await this.getPlaybackState(user);
-        return duplication.songName + "|" + duplication.artistName + "|" + volume;
-      }
-      else {
-        const saveTrackData: PlaylistDto = new PlaylistDto();
-        saveTrackData.token = user;
-        saveTrackData.albumName = data.album.name;
-        saveTrackData.artistName = artistName;
-        saveTrackData.songName = data.name;
-        saveTrackData.count = 1;
-        saveTrackData.deviceId = device;
-        saveTrackData.albumImage = data.album.images.find((image) => image.height === 640).url;
-        saveTrackData.artistImage = data.artists[0].id;
-
-        await this.playlistRepository.save(saveTrackData);
-        await this.sendSocketData(current_ms, String(duration_ms));
-        volume = await this.getPlaybackState(user);
-        return saveTrackData.songName + "|" + saveTrackData.artistName + "|" + volume;
-      }
+      const song: Music = {current_ms, duration_ms, device, user, artistName, duplication, data}
+      if (duplication) return await this.deduplicationOfSongs(song) + "|" + volume
+      else return await this.saveTrackData(song) + "|" + volume
     } catch (error) {
-      console.log('get playing track', error);
+      console.log(error);
     }
+  }
+
+
+  async deduplicationOfSongs(song: Music){
+    const updateInfo = {
+      ...song.duplication,
+      count: song.duplication.count + 1
+    }
+
+    await this.playlistRepository.update(updateInfo.songId, updateInfo);
+    await this.userService.sendSocketData(String(song.current_ms), String(song.duration_ms));
+    return song.duplication.songName + "|" + song.duplication.artistName;
+  }
+
+
+  async saveTrackData(song: Music){
+    const saveTrackData: PlaylistDto = new PlaylistDto;
+    saveTrackData.token = song.user;
+    saveTrackData.albumName = song.data.album.name
+    saveTrackData.artistName = song.artistName;
+    saveTrackData.songName = song.data.name;
+    saveTrackData.count = 1;
+    saveTrackData.deviceId = song.device;
+    saveTrackData.albumImage = song.data.album.images.find((image) => image.height === 640).url;
+    saveTrackData.artistImage = song.data.artists[0].id;
+
+    await this.playlistRepository.save(saveTrackData);
+    await this.userService.sendSocketData(song.current_ms, String(song.duration_ms));
+    return saveTrackData.songName + "|" + saveTrackData.artistName;
   }
 
 
   // 디바이스 이름 가져오기
   async getDeviceId(user: Token): Promise<string> {
-    let authOptions = await this.setRequestOptions('deviceId', user)
+    let authOptions = await this.setRequestOptions(REQUEST.OPTIONS.DEVICE, user)
     try {
       const response = await axios.get(PLAYLIST.URL.GET_DEVICE_ID, { headers: authOptions.headers });
       return response.data.devices[0].id;
@@ -100,11 +97,8 @@ export class PlaylistService {
 
   // Command 실행하기
   async executeCommand(commandDto: CommandDto): Promise<string> {
-    const user: Token = await this.tokenRepository.findOne({ where: { userId: commandDto.userId } });
-    if (!user) {
-      throw new CustomException("사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND);
-    }
-    let authOptions = await this.setRequestOptions('command', user);
+    const user:Token = await this.getUserToken(commandDto.userId);
+    let authOptions = await this.setRequestOptions(REQUEST.OPTIONS.COMMAND, user);
 
     switch (commandDto.command) {
       case 'play':
@@ -127,7 +121,6 @@ export class PlaylistService {
   }
 
   async getUserToken(userId: string): Promise<Token> {
-    console.log("여기 들어옴?")
     const user: Token = await this.tokenRepository.findOne({ where: { userId } });
     if (!user) {
       throw new CustomException("사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND);
@@ -141,7 +134,7 @@ export class PlaylistService {
     }
 
     switch (type) {
-      case 'transfer':
+      case REQUEST.OPTIONS.TRANSFER:
         return {
           headers: { ...headers, "Content-Type": "application/json" },
           data: {
@@ -149,38 +142,14 @@ export class PlaylistService {
             play: true
           }
         }
-      case 'command': case 'volume':
+      case REQUEST.OPTIONS.COMMAND: case REQUEST.OPTIONS.VOLUME:
         return {
           headers: { ...headers },
           form: { device_id: await this.getDeviceId(user) },
         }
       default:
-        return { headers: { ...headers } }
+        return { headers: { ...headers }, json: true }
     }
-  }
-
-  async sendSocketData(current: string, progress: string) {
-    const client = new net.Socket;
-    const time = current + "|" + progress;
-    client.connect(+process.env.SERVER_PORT, process.env.SERVER_IP, function () {
-      console.log("Connected to the server");
-      client.write(time);
-    })
-    client.on('data', function (data) {
-      console.log("Received from the server data : " + data)
-    })
-
-    client.on('close', function () {
-      console.log('Connection closed')
-    })
-
-    client.on('error', (err) => {
-      if (err.message.includes('ECONNREFUSED')) {
-        console.log('Connection refused to the server. Please check your server status or IP address.');
-      } else {
-        console.log('An unexpected error occurred:', err.message);
-      }
-    });
   }
 
   // 토큰 만료 시
@@ -204,8 +173,7 @@ export class PlaylistService {
   async setVolumePersent(volumeDto: VolumnDto): Promise<string> {
     try {
       const user: Token = await this.getUserToken(volumeDto.userId)
-
-      let authOptions = await this.setRequestOptions('volume', user)
+      let authOptions = await this.setRequestOptions(REQUEST.OPTIONS.VOLUME, user)
       let volume_percent = await this.getPlaybackState(user);
 
       if (volumeDto.volume && volume_percent === 100) return "It's already the maximum volume." // up - volume: 100%
@@ -223,7 +191,7 @@ export class PlaylistService {
   // 재생 상태 가져오기
   async getPlaybackState(user: Token): Promise<number> {
     try {
-      let authOptions = await this.setRequestOptions('playback', user);
+      let authOptions = await this.setRequestOptions(REQUEST.OPTIONS.PLAYBACK, user);
       const response = await axios.get(PLAYLIST.URL.GET_PLAYBACK_STATE, { headers: authOptions.headers });
       return response.data.device.volume_percent;
     } catch (error) {
@@ -234,7 +202,7 @@ export class PlaylistService {
   // 재생 전송
   async transferUserPlayback(user: Token): Promise<void> {
     try {
-      let authOptions = await this.setRequestOptions('transfer', user);
+      let authOptions = await this.setRequestOptions(REQUEST.OPTIONS.TRANSFER, user);
       await axios.put(PLAYLIST.URL.TRANSFER_PLAYBACK, authOptions.data, { headers: authOptions.headers })
     } catch (error) {
       console.log(error)

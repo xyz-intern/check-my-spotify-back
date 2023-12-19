@@ -68,6 +68,9 @@ constructor(
 
 
   async saveTrackData(song: Music){
+    let artist = Object.values(song.data.artists);
+    const artistName = artist.map(artist => artist['id']).join(', ');
+    
     const saveTrackData: PlaylistDto = new PlaylistDto;
     saveTrackData.token = song.user;
     saveTrackData.albumName = song.data.album.name
@@ -76,7 +79,7 @@ constructor(
     saveTrackData.count = 1;
     saveTrackData.deviceId = song.device;
     saveTrackData.albumImage = song.data.album.images.find((image) => image.height === 640).url;
-    saveTrackData.artistImage = song.data.artists[0].id;
+    saveTrackData.artistImage = artistName
 
     await this.playlistRepository.save(saveTrackData);
     await this.userService.sendSocketData(song.current_ms, String(song.duration_ms));
@@ -103,7 +106,7 @@ constructor(
     switch (commandDto.command) {
       case 'play':
         await this.transferUserPlayback(user);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         return await this.getPlayingTrack(user.userId);
       case 'stop':
         await axios.put(PLAYLIST.URL.PLAYLIST_SET_STOP, authOptions.form, { headers: authOptions.headers });
@@ -129,27 +132,32 @@ constructor(
   }
 
   async setRequestOptions(type: string, user: Token) {
-    const headers = {
-      'Authorization': 'Bearer ' + user.accessToken
-    }
-
-    switch (type) {
-      case REQUEST.OPTIONS.TRANSFER:
-        return {
-          headers: { ...headers, "Content-Type": "application/json" },
-          data: {
-            device_ids: [`${await this.getDeviceId(user)}`],
-            play: true
+    try{
+      const headers = {
+        'Authorization': 'Bearer ' + user.accessToken
+      }
+  
+      switch (type) {
+        case REQUEST.OPTIONS.TRANSFER:
+          return {
+            headers: { ...headers, "Content-Type": "application/json" },
+            data: {
+              device_ids: [`${await this.getDeviceId(user)}`],
+              play: true
+            }
           }
-        }
-      case REQUEST.OPTIONS.COMMAND: case REQUEST.OPTIONS.VOLUME:
-        return {
-          headers: { ...headers },
-          form: { device_id: await this.getDeviceId(user) },
-        }
-      default:
-        return { headers: { ...headers }, json: true }
+        case REQUEST.OPTIONS.COMMAND: case REQUEST.OPTIONS.VOLUME:
+          return {
+            headers: { ...headers },
+            form: { device_id: await this.getDeviceId(user) },
+          }
+        default:
+          return { headers: { ...headers } }
+      }
+    }catch(error){
+      console.log(error)
     }
+  
   }
 
   // 토큰 만료 시
@@ -166,6 +174,7 @@ constructor(
 
     await this.playlistRepository.delete({ token: { userId: userId } });
     await this.tokenRepository.delete(userId);
+    console.log('토큰이 삭제되었습니다.')
     return "로그아웃이 완료되었습니다."
   }
 
@@ -176,10 +185,10 @@ constructor(
       let authOptions = await this.setRequestOptions(REQUEST.OPTIONS.VOLUME, user)
       let volume_percent = await this.getPlaybackState(user);
 
-      if (volumeDto.volume && volume_percent === 100) return "It's already the maximum volume." // up - volume: 100%
-      else if (volumeDto.volume) volume_percent += 5; // up - volume: 5~95%
-      else if (volume_percent === 0 && !volumeDto.volume) return "Volume is 0%" // down - volume: 0%
-      else if (!volumeDto.volume) volume_percent -= 5; // down - volume: 5~100%
+      if (volumeDto.volume && volume_percent === 100) return "It's already the maximum volume." // up
+      else if (volumeDto.volume) volume_percent += 5; // up
+      else if (volume_percent === 0 && !volumeDto.volume) return "Volume is 0%" // down
+      else if (!volumeDto.volume) volume_percent -= 5; // down
 
       await axios.put(PLAYLIST.URL.SET_PLAYBACK_VOLUME + volume_percent, authOptions.form, { headers: authOptions.headers });
       return `${volume_percent}%`

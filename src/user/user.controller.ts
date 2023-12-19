@@ -52,6 +52,7 @@ export class UserController {
   @Post("/reissue")
   @ApiBody({schema: { properties: {userId: {type: 'string'}, refreshToken: {type: 'string'}}}})
   async getReAccessToken(@Body() tokenDto: TokenDto): Promise<string> {
+    console.log("액세스 토큰 제발~~~~~~~~~~~~급!")
     return await this.userService.getReAccessToken(tokenDto);
   }
 

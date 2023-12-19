@@ -4,8 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { WsAdapter } from '@nestjs/platform-ws';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
-import { SessionOptions } from 'express-session';
-import { axiosErrorMiddleware } from './common/exception/axiosErrorMiddleware';
+import { PlaylistService } from './playlist/playlist.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(UserModule);
@@ -44,9 +43,8 @@ async function bootstrap() {
   }
   );
 
-  const userService = require('./playlist/playlist.service'); // userService 파일 경로에 맞게 수정
-
-app.use(axiosErrorMiddleware(userService));
+  const { axiosErrorMiddleware } = require('./common/exception/axiosErrorMiddleware');
+  app.use(axiosErrorMiddleware());
   await app.listen(3000);
 }
 bootstrap();

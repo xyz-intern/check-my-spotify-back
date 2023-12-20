@@ -7,5 +7,6 @@ export const OPTIONS = {
     TRANSFER: 'transfer',
     TOKEN: 'token',
     RETOKEN: 'retoken',
-    USER: 'user'
+    USER: 'user',
+    HEARD : 'heard'
 }

@@ -26,6 +26,7 @@ export class ChartsService {
 
   // 가장 많이 들은 아티스트
   async heardALotArtists(): Promise<any> {
+    // console.log('여기 ㄷㄹ어오긴 함 ?');
     const queryBuilder = this.playlistRepository.createQueryBuilder('playlist');
     const query = queryBuilder
       .select('playlist.artistName', 'artistName')
@@ -34,14 +35,13 @@ export class ChartsService {
       .addSelect('playlist.artistImage', 'artistImage')
       .groupBy('playlist.artistName, playlist.userId, playlist.artistImage')
       .orderBy('SUM(playlist.count)', 'DESC');
-      const result = await query.getRawMany();
-      return await this.getArtistInfo(result)
-
+    const result = await query.getRawMany();
+    return await this.getArtistInfo(result)
   }
 
   async getArtistInfo(result: any[]) {
-    try{
     const dataResult = await Promise.all(result.flatMap(async (row) => {
+      console.log('hi');
       const user: Token = await this.playlistService.getUserToken(row.userId);
       let authOptions = await this.playlistService.setRequestOptions('heard', user);
       let artistId = row.artistImage.split(', ');
@@ -49,10 +49,14 @@ export class ChartsService {
       let artistImage = [];
 
       for (let i = 0; i < artistId.length; i++) {
-          const response = await axios.get(`${CHART.URL.GET_ARTIST_IMAGE}${artistId[i]}`, { headers: authOptions.headers });
+        try {
+          const response = await axios.get(`${CHART.URL.GET_USER_PROFILE}`, { headers: authOptions.headers });
           const images = response.data.images[0];
           if (!images) artistImage.push('https://url.kr/vtmp17');
           else artistImage.push(images.url);
+        } catch (error) {
+          console.log(error)
+        }
       }
 
       const artistInfo = [];
@@ -67,10 +71,6 @@ export class ChartsService {
       return artistInfo;
     }));
     return dataResult.flat();
-  } catch (error) {
-    console.error(error); // 에러를 외부로 출력
-    throw error; // 에러를 외부로 전달
-  }
   }
 
 

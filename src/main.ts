@@ -5,7 +5,8 @@ import { WsAdapter } from '@nestjs/platform-ws';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import { PlaylistService } from './playlist/playlist.service';
-
+import { AxiosErrorMiddleware } from './common/exception/axiosErrorMiddleware';
+import express from 'express';
 async function bootstrap() {
   const app = await NestFactory.create(UserModule);
   // Swagger Setting
@@ -42,9 +43,11 @@ async function bootstrap() {
     credentials: true,
   }
   );
-
-  const { axiosErrorMiddleware } = require('./common/exception/axiosErrorMiddleware');
-  app.use(axiosErrorMiddleware());
+  const playlistService = app.get(PlaylistService);
+  const axiosErrorMiddleware = new AxiosErrorMiddleware(playlistService);
+  app.use(axiosErrorMiddleware.interceptResponse);
+  app.use(express.urlencoded({extended: true}))
   await app.listen(3000);
+  
 }
 bootstrap();

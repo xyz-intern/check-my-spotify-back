@@ -13,6 +13,7 @@ import { Playlist } from './entities/playlist.entity';
 import { Repository } from 'typeorm';
 import { UserService } from 'src/user/user.service';
 import { Music } from './dto/music.dto';
+
 @Injectable()
 export class PlaylistService {
 constructor(
@@ -162,20 +163,24 @@ constructor(
 
   // 토큰 만료 시
   async afterTokenExpiration(userId: string): Promise<string> {
-    const user: Token = await this.getUserToken(userId)
+    // console.log('afterToken Expiration')
+    try{
+      const user: Token = await this.getUserToken(userId)
 
-    if (!user.refreshToken_expiration) {
-      const updateExpire = {
-        ...user,
-        refreshToken_expiration: true, // false -> true
-      };
-      await this.tokenRepository.update(userId, updateExpire);
+      if (!user.refreshToken_expiration) {
+        const updateExpire = {
+          ...user,
+          refreshToken_expiration: true, // false -> true
+        };
+        await this.tokenRepository.update(userId, updateExpire);
+      }
+  
+      await this.playlistRepository.delete({ token: { userId: userId } });
+      await this.tokenRepository.delete(userId);
+      return "로그아웃이 완료되었습니다."
+    }catch(error){
+      console.log(error)
     }
-
-    await this.playlistRepository.delete({ token: { userId: userId } });
-    await this.tokenRepository.delete(userId);
-    console.log('토큰이 삭제되었습니다.')
-    return "로그아웃이 완료되었습니다."
   }
 
   // 볼륨 조정하기

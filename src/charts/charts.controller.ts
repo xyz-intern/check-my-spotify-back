@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ChartsService } from './charts.service';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
@@ -26,7 +26,7 @@ export class ChartsController {
   }
 
   @ApiOperation({summary: '가장 많이 들은 아티스트'})
-  @Get('/heard/artists')
+  @Post('/heard/artists')
   async lovitArtists(): Promise<object> {
     return await this.chartsService.heardALotArtists();
   }

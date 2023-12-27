@@ -11,8 +11,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { EventsModule } from 'src/socket/event.module';
 import { ChartsModule } from 'src/charts/charts.module';
 import { SessionModule } from 'nestjs-session';
-import { PlaylistService } from 'src/playlist/playlist.service';
-import { PlaylistRepository } from 'src/playlist/playlist.repository';
 
 @Module({
   imports: [PlaylistModule,

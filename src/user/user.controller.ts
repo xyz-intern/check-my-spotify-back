@@ -22,7 +22,7 @@ export class UserController {
   async callback(@Req() req: Request, @Res() res: Response): Promise<any> {
     const state = req.query.state || null;
     const code = req.query.code || null;
-
+    
     if (!state) return res.redirect('/#' + querystring.stringify({ error: 'state_mismatch' }));
     const token = await this.userService.getAuthorizationCode(code);
 

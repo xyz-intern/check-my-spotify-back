@@ -16,13 +16,13 @@ import { Music } from './dto/music.dto';
 
 @Injectable()
 export class PlaylistService {
-constructor(
-  @InjectRepository(Playlist)
-  private playlistRepository: Repository<Playlist>,
-  @InjectRepository(Token)
-  private tokenRepository: Repository<Token>,
-  private userService: UserService
-) { }
+  constructor(
+    @InjectRepository(Playlist)
+    private playlistRepository: Repository<Playlist>,
+    @InjectRepository(Token)
+    private tokenRepository: Repository<Token>,
+    private userService: UserService
+  ) { }
 
   // 현재 듣고 있는 트랙 가져오기
   async getPlayingTrack(userId: string): Promise<string> {
@@ -37,7 +37,6 @@ constructor(
 
       const volume = await this.getPlaybackState(user);
       const device = await this.getDeviceId(user);
-
       const progress_ms = parseInt(response.data.progress_ms); // 현재까지 들은 시간
       const duration_ms = parseInt(data.duration_ms);   // 전체시간
       const current_ms = String(duration_ms - progress_ms); // 남은 시간 
@@ -47,7 +46,7 @@ constructor(
         where: { songName: data.name, artistName: artistName }
       })
 
-      const song: Music = {current_ms, duration_ms, device, user, artistName, duplication, data}
+      const song: Music = { current_ms, duration_ms, device, user, artistName, duplication, data }
       if (duplication) return await this.deduplicationOfSongs(song) + "|" + volume
       else return await this.saveTrackData(song) + "|" + volume
     } catch (error) {
@@ -56,7 +55,7 @@ constructor(
   }
 
 
-  async deduplicationOfSongs(song: Music){
+  async deduplicationOfSongs(song: Music) {
     const updateInfo = {
       ...song.duplication,
       count: song.duplication.count + 1
@@ -68,10 +67,10 @@ constructor(
   }
 
 
-  async saveTrackData(song: Music){
+  async saveTrackData(song: Music) {
     let artist = Object.values(song.data.artists);
     const artistName = artist.map(artist => artist['id']).join(', ');
-    
+
     const saveTrackData: PlaylistDto = new PlaylistDto;
     saveTrackData.token = song.user;
     saveTrackData.albumName = song.data.album.name
@@ -101,7 +100,7 @@ constructor(
 
   // Command 실행하기
   async executeCommand(commandDto: CommandDto): Promise<string> {
-    const user:Token = await this.getUserToken(commandDto.userId);
+    const user: Token = await this.getUserToken(commandDto.userId);
     let authOptions = await this.setRequestOptions(REQUEST.OPTIONS.COMMAND, user);
 
     switch (commandDto.command) {
@@ -133,11 +132,11 @@ constructor(
   }
 
   async setRequestOptions(type: string, user: Token) {
-    try{
+    try {
       const headers = {
         'Authorization': 'Bearer ' + user.accessToken
       }
-  
+
       switch (type) {
         case REQUEST.OPTIONS.TRANSFER:
           return {
@@ -155,16 +154,14 @@ constructor(
         default:
           return { headers: { ...headers } }
       }
-    }catch(error){
+    } catch (error) {
       console.log(error)
     }
-  
+
   }
 
-  // 토큰 만료 시
   async afterTokenExpiration(userId: string): Promise<string> {
-    // console.log('afterToken Expiration')
-    try{
+    try {
       const user: Token = await this.getUserToken(userId)
 
       if (!user.refreshToken_expiration) {
@@ -174,11 +171,11 @@ constructor(
         };
         await this.tokenRepository.update(userId, updateExpire);
       }
-  
-      await this.playlistRepository.delete({ token: { userId: userId } });
+
+      await this.playlistRepository.delete({token: {userId: userId}})
       await this.tokenRepository.delete(userId);
       return "로그아웃이 완료되었습니다."
-    }catch(error){
+    } catch (error) {
       console.log(error)
     }
   }

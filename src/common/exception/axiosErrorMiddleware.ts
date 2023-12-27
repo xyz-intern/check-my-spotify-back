@@ -2,17 +2,17 @@ import axios from "axios";
 import { CustomException } from "./custom.exception";
 import { PlaylistService } from "src/playlist/playlist.service";
 import { Injectable } from "@nestjs/common";
-import { error } from "console";
 
 @Injectable()
 export class AxiosErrorMiddleware {
   constructor(private readonly playlistService: PlaylistService) { }
 
   public interceptResponse = async (req, res, next) => {
+    let userId;
     axios.interceptors.response.use(
       (response) => response,
       async (error) => {
-        const { userId } = req.body;
+        if (req.body.userId) userId = req.body.userId
         if (error.response.status === 404) {
           throw new CustomException("연결된 기기가 없습니다.", 404);
         } else if (error.response.status === 401) {

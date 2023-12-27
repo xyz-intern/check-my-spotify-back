@@ -26,7 +26,6 @@ export class ChartsService {
 
   // 가장 많이 들은 아티스트
   async heardALotArtists(): Promise<any> {
-    // console.log('여기 ㄷㄹ어오긴 함 ?');
     const queryBuilder = this.playlistRepository.createQueryBuilder('playlist');
     const query = queryBuilder
       .select('playlist.artistName', 'artistName')
@@ -39,24 +38,21 @@ export class ChartsService {
     return await this.getArtistInfo(result)
   }
 
+
   async getArtistInfo(result: any[]) {
     const dataResult = await Promise.all(result.flatMap(async (row) => {
-      console.log('hi');
       const user: Token = await this.playlistService.getUserToken(row.userId);
       let authOptions = await this.playlistService.setRequestOptions('heard', user);
+
       let artistId = row.artistImage.split(', ');
       let artistName = row.artistName.split(', ');
       let artistImage = [];
 
       for (let i = 0; i < artistId.length; i++) {
-        try {
-          const response = await axios.get(`${CHART.URL.GET_USER_PROFILE}`, { headers: authOptions.headers });
-          const images = response.data.images[0];
-          if (!images) artistImage.push('https://url.kr/vtmp17');
-          else artistImage.push(images.url);
-        } catch (error) {
-          console.log(error)
-        }
+        const response = await axios.get(`${CHART.URL.GET_ARTIST_IMAGE}${artistId[i]}`, { headers: authOptions.headers });
+        const images = response.data.images[0];
+        if (!images) artistImage.push('https://url.kr/vtmp17');
+        else artistImage.push(images.url);
       }
 
       const artistInfo = [];
@@ -70,7 +66,18 @@ export class ChartsService {
 
       return artistInfo;
     }));
-    return dataResult.flat();
+
+    const results = dataResult.flat()
+    const uniqueArtists = [];
+    const artistNames = new Set();
+    results.forEach(item => {
+      if (!artistNames.has(item.artistName)) {
+        artistNames.add(item.artistName);
+        uniqueArtists.push(item);
+      }
+    });
+
+    return uniqueArtists
   }
 
 

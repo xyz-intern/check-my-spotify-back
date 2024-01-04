@@ -5,8 +5,8 @@ import { Token } from '../user/entities/token.entity';
 import { PlaylistDto } from '../charts/dto/playlist.dto';
 import { CustomException } from 'src/common/exception/custom.exception';
 import { HttpStatus } from '@nestjs/common';
-import { CommandDto } from './dto/command.dto';
-import { VolumnDto } from './dto/volume.dto';
+import { CommandDto } from './dto/request/command.dto';
+import { VolumnDto } from './dto/request/volume.dto';
 import * as PLAYLIST from '../common/constants/spotify.url';
 import * as REQUEST from '../common/constants/request.option'
 import { Playlist } from './entities/playlist.entity';
@@ -16,6 +16,9 @@ import { Music } from './dto/music.dto';
 import { Artist } from './entities/artist.entity';
 import { ArtistDto } from 'src/charts/dto/artist.dto';
 import { Equal } from 'typeorm';
+import { LogoutDto } from 'src/user/dto/request/logout.dto';
+import { log } from 'console';
+import { TrackDto } from './dto/request/track.dto';
 
 @Injectable()
 export class PlaylistService {
@@ -30,9 +33,9 @@ export class PlaylistService {
   ) { }
 
   // 현재 듣고 있는 트랙 가져오기
-  async getPlayingTrack(userId: string): Promise<any> {
+  async getPlayingTrack(trackDto: TrackDto): Promise<any> {
     try {
-      const user: Token = await this.getUserToken(userId)
+      const user: Token = await this.getUserToken(trackDto.userId)
       const authOptions = await this.setRequestOptions(REQUEST.OPTIONS.TRACK, user)
       const response = await axios.get(PLAYLIST.URL.GET_CURRENT_PLAYING, { headers: authOptions.headers });
       const data = response.data.item;
@@ -46,6 +49,7 @@ export class PlaylistService {
       const duration_ms = parseInt(data.duration_ms);   // 전체시간
       const current_ms = String(duration_ms - progress_ms); // 남은 시간 
       
+      // 중복 곡 확인하기
       const duplication = await this.playlistRepository.createQueryBuilder('playlist')
         .innerJoin('playlist.artist', 'artist')
         .select(['playlist.*'])
@@ -63,11 +67,12 @@ export class PlaylistService {
   }
 
 
-  async deduplicationOfSongs(song: Music) {
+  // 중복 곡 재생 시
+  async deduplicationOfSongs(song: Music) { 
     await this.deduplicationOfArtist(song);
-    const updateInfo = {
+    const updateInfo = { // 중복 곡 재생 시 곡 count ++
       ...song.duplication[0],
-      count: song.duplication[0].count + 1
+      count: song.duplication[0].count + 1 
     }
     await this.playlistRepository.save(updateInfo);
     await this.userService.sendSocketData(String(song.current_ms), String(song.duration_ms));
@@ -75,8 +80,8 @@ export class PlaylistService {
   }
 
   async deduplicationOfArtist(artist: Music) {
-    const artists: Artist[] = await this.artistRepository.find({ where: { playlist: Equal(artist.duplication[0].songId) } });
-    const updatedArtists = artists.map(artist => {
+    const artists: Artist[] = await this.artistRepository.find({ where: { playlist: Equal(artist.duplication[0].songId) } }); // 중복 아티스트
+    const updatedArtists = artists.map(artist => { // 하나의 곡에 해당하는 아티스트 전부 count ++
       return {
         ...artist,
         count: artist.count + 1
@@ -92,7 +97,7 @@ export class PlaylistService {
   async saveTrackData(song: Music) {
     let artist = Object.values(song.data.artists);
     const artistName = artist.map(artist => artist['id']);
-    const saveTrackData: PlaylistDto = new PlaylistDto;
+    const saveTrackData: PlaylistDto = new PlaylistDto; // Playlist 생성
     saveTrackData.token = song.user;
     saveTrackData.songName = song.data.name;
     saveTrackData.albumImage = song.data.album.images.find((image) => image.height === 640).url;
@@ -101,7 +106,7 @@ export class PlaylistService {
     const track = await this.playlistRepository.save(saveTrackData);
 
     for (let i = 0; i < artist.length; i++) {
-      const saveArtistData: ArtistDto = new ArtistDto;
+      const saveArtistData: ArtistDto = new ArtistDto; // Artist 생성
       saveArtistData.artistId = artistName[i];
       saveArtistData.artistName = song.artistName[i];
       saveArtistData.count = 1;
@@ -109,7 +114,7 @@ export class PlaylistService {
       await this.artistRepository.save(saveArtistData)
     }
 
-    await this.userService.sendSocketData(song.current_ms, String(song.duration_ms));
+    await this.userService.sendSocketData(song.current_ms, String(song.duration_ms)); // Socket 통신
     return saveTrackData.songName + "|" + song.artistName;
   }
 
@@ -130,19 +135,22 @@ export class PlaylistService {
     const user: Token = await this.getUserToken(commandDto.userId);
     let authOptions = await this.setRequestOptions(REQUEST.OPTIONS.COMMAND, user);
 
+    const trackDto = new TrackDto();
+    trackDto.userId = user.userId;
+
     switch (commandDto.command) {
-      case 'play':
+      case 'play': // 곡 재생 시 
         await this.transferUserPlayback(user);
         await new Promise(resolve => setTimeout(resolve, 2000));
-        return await this.getPlayingTrack(user.userId);
-      case 'stop':
+        return await this.getPlayingTrack(trackDto);
+      case 'stop': // 곡 멈춤 시 
         await axios.put(PLAYLIST.URL.PLAYLIST_SET_STOP, authOptions.form, { headers: authOptions.headers });
         let volume = await this.getPlaybackState(user)
         return `stoped|${volume}`;
-      case 'next':
+      case 'next': // 다음 곡 전환 시
         await axios.post(PLAYLIST.URL.PLAYLIST_SET_NEXT, authOptions.form, { headers: authOptions.headers });
         return "다음곡으로 | 전환하였습니다.";
-      case 'prev':
+      case 'prev': // 이전 곡 전환 시
         axios.post(PLAYLIST.URL.PLAYLIST_SET_PRE, authOptions.form, { headers: authOptions.headers });
         return "이전곡으로 | 전환하였습니다.";
       default:
@@ -150,6 +158,7 @@ export class PlaylistService {
     }
   }
 
+  // 유저 로그인 확인
   async getUserToken(userId: string): Promise<Token> {
     const user: Token = await this.tokenRepository.findOne({ where: { userId } });
     if (!user) {
@@ -158,11 +167,12 @@ export class PlaylistService {
     return user;
   }
 
+  // Spotify 요청 시 Header 설정
   async setRequestOptions(type: string, user: Token) {
     try {
       const headers = {
         'Authorization': 'Bearer ' + user.accessToken
-      }
+      } // Basic Header
 
       switch (type) {
         case REQUEST.OPTIONS.TRANSFER:
@@ -187,20 +197,20 @@ export class PlaylistService {
 
   }
 
-  async afterTokenExpiration(userId: string): Promise<string> {
+  async afterTokenExpiration(logoutDto: LogoutDto): Promise<string> {
     try {
-      const user: Token = await this.getUserToken(userId)
+      const user: Token = await this.getUserToken(logoutDto.userId) // get User Token
 
       if (!user.refreshToken_expiration) {
         const updateExpire = {
           ...user,
           refreshToken_expiration: true, // false -> true
         };
-        await this.tokenRepository.update(userId, updateExpire);
+        await this.tokenRepository.update(logoutDto.userId, updateExpire); // token update
       }
 
-      await this.playlistRepository.delete({ token: { userId: userId } })
-      await this.tokenRepository.delete(userId);
+      await this.playlistRepository.delete({ token: { userId: logoutDto.userId } })
+      await this.tokenRepository.delete(logoutDto.userId);
       return "로그아웃이 완료되었습니다."
     } catch (error) {
       console.log(error)

@@ -11,6 +11,7 @@ import { Token } from 'src/user/entities/token.entity';
 import * as CHART from '../common/constants/spotify.url'
 import { PlaylistService } from 'src/playlist/playlist.service';
 import { Artist } from 'src/playlist/entities/artist.entity';
+import { FavoriteDto } from './dto/request/favorite.dto';
 @Injectable()
 export class ChartsService {
   constructor(
@@ -24,29 +25,21 @@ export class ChartsService {
 
   // 최근에 들은 곡
   async lastSongs(): Promise<object> {
-    const songs = await this.playlistRepository.createQueryBuilder('playlist')
-      .innerJoin('playlist.artist', 'artist')
-      .select(['playlist.albumImage, playlist.songName, artist.artistName'])
-      .orderBy({ 'playlist.count': 'DESC' })
-      .getRawMany();
-    return songs;
-  }
-
-  // 가장 많이 들은 노래순
-  async favoriteSongs(): Promise<object> {
+    // count가 높은 순으로 반환
     const songs = await this.playlistRepository.createQueryBuilder('playlist')
       .innerJoin('playlist.artist', 'artist')
       .select(['playlist.albumImage, playlist.songName, artist.artistName, playlist.count'])
       .orderBy({ 'playlist.count': 'DESC' })
       .getRawMany();
-    return songs
+    return songs;
   }
 
-
   // 가장 많이 들은 아티스트
-  async heardALotArtists(userId: string): Promise<object> {
-    const user: Token = await this.playlistService.getUserToken(userId);
+  async heardALotArtists(favoriteDto: FavoriteDto): Promise<object> {
+    const user: Token = await this.playlistService.getUserToken(favoriteDto.userId);
     let authOptions = await this.playlistService.setRequestOptions('heard', user);
+    
+    // 중복 아티스트 -> SUM(COUNT)
     const result = await this.artistRepository.createQueryBuilder('artist')
     .select('artist.artistName, artist.artistId')
     .addSelect('SUM(artist.count)', 'total_count')
@@ -54,21 +47,19 @@ export class ChartsService {
     .orderBy({'total_count': 'DESC'})
     .getRawMany();
  
-    let artistId = result.map(item => item.artistId);
+    let artistId = result.map(item => item.artistId); // artistId 배열 추가
     let artistImage = [];
 
-    for(let i = 0; i<artistId.length; i++){
-      const response = await axios.get(`${CHART.URL.GET_ARTIST_IMAGE}${artistId[i]}`, { headers: authOptions.headers })
+    for(let i = 0; i< artistId.length; i++){
+      const response = await axios.get(`${CHART.URL.GET_ARTIST_IMAGE}${artistId[i]}`, { headers: authOptions.headers }) // artistImage 요청하기
       const images = response.data.images[0]
-      if(!images) artistImage.push('https://url.kr/vtmp17');
+      if(!images) artistImage.push('https://url.kr/vtmp17'); // artistImage가 없다면
       else artistImage.push(images.url)
       result[i].image = artistImage[i]
     }
 
     return result;
   }
-
-
 
 
   // Top Songs 50

@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import axios from 'axios';
 import { MyToken } from '../user/interface/token.interface';
 import * as net from 'net';
-import { TokenDto } from './dto/token.dto';
+import { TokenDto } from './dto/request/token.dto';
 import * as REQUEST from '../common/constants/request.option'
 import * as SPOTIFY from '../common/constants/spotify.url';
 
@@ -27,11 +27,12 @@ export class UserService {
 
       if (response.data) this.sendSocketData(userName);
 
+      // 토큰 생성하기
       const token = this.tokenRepository.create({
         userId: userName,
         refreshToken: refresh_token,
         accessToken: access_token,
-      });
+      }); 
 
       await this.tokenRepository.save(token);
       return token;
@@ -60,10 +61,11 @@ export class UserService {
       const response = await axios.post(SPOTIFY.URL.GET_TOKEN, authOptions.form, { headers: authOptions.headers });
       const user = await this.tokenRepository.findOne({ where: { userId: tokenDto.userId } });
 
+      // 재발급 받은 토큰 업데이트
       const updateToken = {
         ...user,
         accessToken: response.data.access_token
-      }
+      } 
 
       const sucess = await this.tokenRepository.update(user.userId, updateToken)
       if (sucess) return "액세스 토큰이 재발급 되었습니다.";
@@ -72,6 +74,7 @@ export class UserService {
     }
   }
 
+  // Spotify에 요청 시 Header 설정
   async setRequestOptions(type: string, data: any) {
     const headers = {
       Authorization:

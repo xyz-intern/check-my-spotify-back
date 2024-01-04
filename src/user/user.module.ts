@@ -30,6 +30,7 @@ import { ArtistRepository } from 'src/playlist/artist.repository';
         saveUninitialized: false
       }
     }),
+    // DB Connection
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DATABASE_HOST,

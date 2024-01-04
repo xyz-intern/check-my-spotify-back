@@ -27,8 +27,8 @@ export class ChartsController {
 
   @ApiOperation({summary: '가장 많이 들은 아티스트'})
   @Post('/heard/artists')
-  async lovitArtists(): Promise<object> {
-    return await this.chartsService.heardALotArtists();
+  async lovitArtists(@Body("userId") userId: string): Promise<object> {
+    return await this.chartsService.heardALotArtists(userId);
   }
 
   @ApiOperation({summary: '최근에 들은 곡'})

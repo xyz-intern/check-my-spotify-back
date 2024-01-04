@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Token } from "src/user/entities/token.entity";
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Artist } from "./artist.entity";
 
 @Entity()
 export class Playlist {
@@ -10,34 +11,20 @@ export class Playlist {
 
     @Column()
     @ApiProperty()
-    artistName: string;
+    albumImage: string;
+    
+    @ManyToOne(type => Token, token => token.playlist, { nullable: false })
+    @JoinColumn({ name: "userId" })
+    @ApiProperty()
+    token: Token;
 
     @Column()
     @ApiProperty()
     songName: string;
 
-    @Column()
-    @ApiProperty()
-    albumImage: string;
+    @OneToMany(() => Artist, artist => artist.playlist)
+    artist: Artist;
 
     @Column()
-    @ApiProperty()
-    albumName: string;
-
-    @Column()
-    @ApiProperty()
-    deviceId: string;
-
-    @Column()
-    @ApiProperty()
     count: number;
-
-    @Column()
-    @ApiProperty()
-    artistImage: string;
-
-    @ManyToOne(type => Token, token => token.playlist, {nullable: false})
-    @JoinColumn({ name: "userId" })
-    @ApiProperty()
-    token: Token;   
 }

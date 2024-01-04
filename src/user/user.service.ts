@@ -17,7 +17,7 @@ export class UserService {
   ) { }
 
   // AccessToken & RefreshToken 요청하기
-  async getAuthorizationCode(code: Object): Promise<MyToken> {
+  async  getAuthorizationCode(code: Object): Promise<MyToken> {
     try {
       const authOptions = await this.setRequestOptions(REQUEST.OPTIONS.TOKEN, code)
       const response = await axios.post(SPOTIFY.URL.GET_TOKEN, authOptions.form, { headers: authOptions.headers });

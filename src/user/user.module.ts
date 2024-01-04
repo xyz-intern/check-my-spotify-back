@@ -11,6 +11,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { EventsModule } from 'src/socket/event.module';
 import { ChartsModule } from 'src/charts/charts.module';
 import { SessionModule } from 'nestjs-session';
+import { Artist } from 'src/playlist/entities/artist.entity';
+import { ArtistRepository } from 'src/playlist/artist.repository';
 
 @Module({
   imports: [PlaylistModule,
@@ -36,10 +38,10 @@ import { SessionModule } from 'nestjs-session';
       password: process.env.DATABASE_PASSWORD,
       entities: [Token, Playlist],
       database: process.env.DATABASE_NAME,
-      synchronize: false,
+      synchronize: true,
       autoLoadEntities: true
     }),
-    TypeOrmModule.forFeature([Token, TokenRepository]),
+    TypeOrmModule.forFeature([Token, TokenRepository, Artist]),
   ],
   controllers: [UserController],
   providers: [UserService],

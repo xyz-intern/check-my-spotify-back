@@ -10,81 +10,66 @@ import axios from 'axios'
 import { Token } from 'src/user/entities/token.entity';
 import * as CHART from '../common/constants/spotify.url'
 import { PlaylistService } from 'src/playlist/playlist.service';
+import { Artist } from 'src/playlist/entities/artist.entity';
 @Injectable()
 export class ChartsService {
   constructor(
     @InjectRepository(Playlist)
     private playlistRepository: Repository<Playlist>,
+    @InjectRepository(Artist)
+    private artistRepository: Repository<Artist>,
     private httpService: HttpService,
     private playlistService: PlaylistService
   ) { }
 
-  // 가장 많이 들은 노래순
-  async favoriteSongs(): Promise<object> {
-    return await this.playlistRepository.find({ order: { count: 'DESC' } })
-  }
-
-  // 가장 많이 들은 아티스트
-  async heardALotArtists(): Promise<any> {
-    const queryBuilder = this.playlistRepository.createQueryBuilder('playlist');
-    const query = queryBuilder
-      .select('playlist.artistName', 'artistName')
-      .addSelect('SUM(playlist.count)', 'count')
-      .addSelect('playlist.userId', 'userId')
-      .addSelect('playlist.artistImage', 'artistImage')
-      .groupBy('playlist.artistName, playlist.userId, playlist.artistImage')
-      .orderBy('SUM(playlist.count)', 'DESC');
-    const result = await query.getRawMany();
-    return await this.getArtistInfo(result)
-  }
-
-
-  async getArtistInfo(result: any[]) {
-    const dataResult = await Promise.all(result.flatMap(async (row) => {
-      const user: Token = await this.playlistService.getUserToken(row.userId);
-      let authOptions = await this.playlistService.setRequestOptions('heard', user);
-
-      let artistId = row.artistImage.split(', ');
-      let artistName = row.artistName.split(', ');
-      let artistImage = [];
-
-      for (let i = 0; i < artistId.length; i++) {
-        const response = await axios.get(`${CHART.URL.GET_ARTIST_IMAGE}${artistId[i]}`, { headers: authOptions.headers });
-        const images = response.data.images[0];
-        if (!images) artistImage.push('https://url.kr/vtmp17');
-        else artistImage.push(images.url);
-      }
-
-      const artistInfo = [];
-      artistName.forEach((name, index) => {
-        artistInfo.push({
-          artistName: name,
-          artistImage: artistImage[index],
-          songId: Math.random(),
-        });
-      });
-
-      return artistInfo;
-    }));
-
-    const results = dataResult.flat()
-    const uniqueArtists = [];
-    const artistNames = new Set();
-    results.forEach(item => {
-      if (!artistNames.has(item.artistName)) {
-        artistNames.add(item.artistName);
-        uniqueArtists.push(item);
-      }
-    });
-
-    return uniqueArtists
-  }
-
-
   // 최근에 들은 곡
   async lastSongs(): Promise<object> {
-    return await this.playlistRepository.find({ order: { songId: 'DESC' } })
+    const songs = await this.playlistRepository.createQueryBuilder('playlist')
+      .innerJoin('playlist.artist', 'artist')
+      .select(['playlist.albumImage, playlist.songName, artist.artistName'])
+      .orderBy({ 'playlist.count': 'DESC' })
+      .getRawMany();
+    return songs;
   }
+
+  // 가장 많이 들은 노래순
+  async favoriteSongs(): Promise<object> {
+    const songs = await this.playlistRepository.createQueryBuilder('playlist')
+      .innerJoin('playlist.artist', 'artist')
+      .select(['playlist.albumImage, playlist.songName, artist.artistName, playlist.count'])
+      .orderBy({ 'playlist.count': 'DESC' })
+      .getRawMany();
+    return songs
+  }
+
+
+  // 가장 많이 들은 아티스트
+  async heardALotArtists(userId: string): Promise<object> {
+    const user: Token = await this.playlistService.getUserToken(userId);
+    let authOptions = await this.playlistService.setRequestOptions('heard', user);
+    const result = await this.artistRepository.createQueryBuilder('artist')
+    .select('artist.artistName, artist.artistId')
+    .addSelect('SUM(artist.count)', 'total_count')
+    .groupBy('artist.artistName, artist.artistId')
+    .orderBy({'total_count': 'DESC'})
+    .getRawMany();
+ 
+    let artistId = result.map(item => item.artistId);
+    let artistImage = [];
+
+    for(let i = 0; i<artistId.length; i++){
+      const response = await axios.get(`${CHART.URL.GET_ARTIST_IMAGE}${artistId[i]}`, { headers: authOptions.headers })
+      const images = response.data.images[0]
+      if(!images) artistImage.push('https://url.kr/vtmp17');
+      else artistImage.push(images.url)
+      result[i].image = artistImage[i]
+    }
+
+    return result;
+  }
+
+
+
 
   // Top Songs 50
   async topSongs(): Promise<ChartEntity[]> {

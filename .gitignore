@@ -11,6 +11,8 @@
 /dist
 /node_modules
 
+ehco 
+
 # Logs
 logs
 *.log
